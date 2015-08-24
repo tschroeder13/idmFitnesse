@@ -1,0 +1,6 @@
+!****> Global Config
+!define TEST_SYSTEM {slim}
+!1 The POM File
+!pomFile pom.xml
+****!
+!contents -R2 -g -p -f -h

@@ -1,0 +1,21 @@
+!*******> hidden setup
+!define TEST_SYSTEM {slim}
+!!define COMMAND_PATTERN {java -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y -cp %p %m}
+!define CLASSPATH_PROPERTY {CLASSPATH}
+
+!define LIB_PATH {D:\programme_t13699\idmHelpers\PortableApps\LIB}
+
+!path D:\programme_t13699\idmHelpers\Documents\workspace\EdsFitnesse\bin
+!path ${LIB_PATH}\unboundid-ldapsdk-3.0.0-se\unboundid-ldapsdk-se.jar
+!path ${LIB_PATH}\apache\commons\commons-codec-1.10\commons-codec-1.10.jar
+!path ${LIB_PATH}\Novell\dirxml_misc.jar
+
+
+****!
+
+!1 Testgetriebene Entwicklung im Identity Management System der Evonik Industries
+
+!contents -R2 -g -p -f -h
+
+
+${java.library.path}

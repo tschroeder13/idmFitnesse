@@ -1,0 +1,12 @@
+|import           |
+|fitnesse.ssh.slim|
+
+!define meta {guhdemo}
+!define meta_host {172.16.66.210}
+
+!define guhdemo_adm_user {admin.sa.system}
+!define guhdemo_adm_pwd {ENC(nHgy_NBECxliK78756zISw)}
+
+
+|script:ssh slim setup|${meta}|${meta_host}|${guhdemo_adm_user}|${guhdemo_adm_pwd}|
+
