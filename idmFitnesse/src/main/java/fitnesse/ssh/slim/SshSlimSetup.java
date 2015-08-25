@@ -22,7 +22,7 @@ public class SshSlimSetup {
 			String host, 
 			String user, 
 			String password 
-			){
+			) throws StopTestSlimException{
 		this(alias, host, 22, user, password);
 	}
 	
@@ -31,7 +31,7 @@ public class SshSlimSetup {
 			int port, 
 			String user, 
 			String password 
-			){
+			) throws StopTestSlimException{
 		SshConnectionFactory.registerConnetion(alias, host, port, user, password);
 	}
 	
