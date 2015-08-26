@@ -14,6 +14,8 @@ import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 
 import fitnesse.ldap.services.LdapConnectionFactory;
+import fitnesse.slim.SlimException;
+import fitnesse.slim.StopTestSlimException;
 
 public class LdapSlimSearch {
 	private String alias;
@@ -37,13 +39,13 @@ public class LdapSlimSearch {
 		// optional function
 	}
 
-	public List<Object> query() throws LDAPException {
+	public List<Object> query() throws SlimException {
 		List<Object> dataTable = getDataTable();
 		return new ArrayList<Object>(dataTable);
 	}
 	
 	@SuppressWarnings("serial")
-	protected List<Object> getDataTable() throws LDAPException {
+	protected List<Object> getDataTable() throws SlimException {
 		List<SearchResultEntry> rowList = search(baseDn, scope, filter, attributes);
 		List<Object> table = new ArrayList<Object>(resultCount);
 		rowList.forEach(entry -> {
@@ -70,7 +72,7 @@ public class LdapSlimSearch {
 		return table;
 	}
 	
-	protected List<SearchResultEntry> search(String baseDn, String scope, String filter, String... attributes) throws LDAPException {
+	protected List<SearchResultEntry> search(String baseDn, String scope, String filter, String... attributes) throws SlimException  {
 		LDAPInterface ldap = LdapConnectionFactory.getLdapConnection(alias);
 		SearchScope ss = null;
 		if (scope.toUpperCase().equals("BASE")) {
@@ -82,7 +84,12 @@ public class LdapSlimSearch {
 		}else if (scope.toUpperCase().equals("SUBORDINATE")) {
 			 ss = SearchScope.SUBORDINATE_SUBTREE;
 		}
-		SearchResult searchResult = ldap.search(baseDn, ss, filter, attributes);
+		SearchResult searchResult;
+		try {
+			searchResult = ldap.search(baseDn, ss, filter, attributes);
+		} catch (LDAPSearchException e) {
+			throw new SlimException("An error occured while searching for \""+filter+"\"",e,true);
+		}
 		resultCount=searchResult.getEntryCount();
 		return searchResult.getSearchEntries();
 	}
