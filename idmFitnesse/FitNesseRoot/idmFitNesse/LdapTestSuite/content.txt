@@ -1,0 +1,9 @@
+!1 Test suite X
+!define local {localapache}
+!define local_host {127.0.0.1}
+!define local_port {10636}
+!define local_ssl {true}
+!define local_adm_user {uid=admin,ou=system}
+!define local_adm_pwd {ENC(YQ7VeC-c7eLiKrTtkxoo9Q)}
+
+!contents -R2 -g -p -f -h

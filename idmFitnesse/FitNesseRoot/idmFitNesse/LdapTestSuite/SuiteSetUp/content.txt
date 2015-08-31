@@ -1,0 +1,5 @@
+
+|import            |
+|fitnesse.ldap.slim|
+
+!|script:LdapSlimSetup|${local}|${local_host}|${local_port}|${local_ssl}|${local_adm_user}|${local_adm_pwd}|
