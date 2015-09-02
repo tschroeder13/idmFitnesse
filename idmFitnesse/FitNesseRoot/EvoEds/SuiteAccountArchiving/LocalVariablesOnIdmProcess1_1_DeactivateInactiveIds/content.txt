@@ -1,0 +1,12 @@
+| evo_pv_lifecycleTrailingOffset | macht einen negativen Wert aus GCV "evo_gcv_ds_lifecycleTrailingTime", !-
+-!der Anzahl der Monate in der ein deaktivierter Account gehalten wird | -12 |
+| evo_pv_waitOffset | macht einen negativen Wert aus GCV "evo_gcv_ds_archiveProcessWaitTime",!-
+-!Der Anzahl der Tage bevor der finale Archivierungslauf das Konto in inactives verschiebt | -10 |
+| evo_pv_one_year_before | Ein Jahr zuvor (yyyyMMddHHmmssZ) wird mit dem trailingOffset berechnet | dyn |
+| evo_pv_tenDaysBefore | 10 Tage zuvor; wird mit dem waitOffset berechnet | dyn |
+| evo_pv_deletionDebutants | Nodeset für die Archivierungs-Debütanten | |
+| evo_pv_deletionSecondOffenders | Nodeset für die Archivierungs-Finalisten | |
+| | | |
+| | | |
+
+!contents -R2 -g -p -f -h

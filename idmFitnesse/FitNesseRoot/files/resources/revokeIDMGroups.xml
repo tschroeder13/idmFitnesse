@@ -1,0 +1,188 @@
+<do-set-local-variable name="pv_Groupmemberships"
+	scope="policy">
+	<arg-node-set>
+		<token-src-attr class-name="User" name="Group Membership" />
+	</arg-node-set>
+</do-set-local-variable>
+<do-for-each>
+	<arg-node-set>
+		<token-local-variable name="pv_Groupmemberships" />
+	</arg-node-set>
+	<arg-actions>
+		<do-if>
+			<arg-conditions>
+				<and>
+					<if-local-variable mode="regex" name="current-node"
+						op="equal">(?i)^.+\\groups\\IDM\\(Department|Location|Company)\\IDM_.+$
+					</if-local-variable>
+				</and>
+			</arg-conditions>
+			<arg-actions>
+				<do-trace-message color="white">
+					<arg-string>
+						<token-text xml:space="preserve">Remove all Group Memberships (user gets inactive or accouttype not primary) for user DN: </token-text>
+						<token-src-dn />
+					</arg-string>
+				</do-trace-message>
+			</arg-actions>
+			<arg-actions />
+		</do-if>
+	</arg-actions>
+</do-for-each>
+<do-set-local-variable name="pv_degEntitlementRef"
+	scope="policy">
+	<arg-node-set>
+		<token-src-attr class-name="User" name="degEntitlementRef" />
+	</arg-node-set>
+</do-set-local-variable>
+<do-for-each>
+	<arg-node-set>
+		<token-local-variable name="pv_degEntitlementRef" />
+	</arg-node-set>
+	<arg-actions>
+		<do-set-local-variable name="pv_Entitlement-State"
+			scope="policy">
+			<arg-string>
+				<token-xpath expression="$current-node/component[@name='nameSpace']" />
+			</arg-string>
+		</do-set-local-variable>
+		<do-set-local-variable name="pv_Entitlement-objectDN"
+			scope="policy">
+			<arg-string>
+				<token-xpath expression="$current-node/component[@name='volume']" />
+			</arg-string>
+		</do-set-local-variable>
+		<do-set-local-variable name="pv_Entitlement-Path"
+			scope="policy">
+			<arg-string>
+				<token-xpath expression="$current-node/component[@name='path']" />
+			</arg-string>
+		</do-set-local-variable>
+		<do-if>
+			<arg-conditions>
+				<and>
+					<if-local-variable name="pv_Entitlement-Path" op="available" />
+					<if-local-variable mode="regex" name="pv_Entitlement-Path"
+						op="equal">(?i)^Group\|(OU|C|L)\|.+$
+					</if-local-variable>
+				</and>
+			</arg-conditions>
+			<arg-actions>
+				<do-if>
+					<arg-conditions>
+						<and>
+							<if-local-variable name="pv_Entitlement-State"
+								op="available" />
+							<if-local-variable mode="nocase" name="pv_Entitlement-State"
+								op="equal">1</if-local-variable>
+						</and>
+					</arg-conditions>
+					<arg-actions>
+						<do-set-local-variable name="pv_InActiveEntitlements-available"
+							scope="policy">
+							<arg-node-set>
+								<token-query class-name="User" datastore="src">
+									<arg-dn>
+										<token-global-variable name="gcv_base_container_all_user_objects" />
+									</arg-dn>
+									<arg-match-attr name="degEntitlementRef">
+										<arg-value type="structured">
+											<arg-component name="nameSpace">
+												<token-text xml:space="preserve">0</token-text>
+											</arg-component>
+											<arg-component name="volume">
+												<token-global-variable name="dirxml.auto.driverdn" />
+											</arg-component>
+											<arg-component name="path">
+												<token-local-variable name="pv_Entitlement-Path" />
+											</arg-component>
+										</arg-value>
+									</arg-match-attr>
+									<arg-match-attr name="CN">
+										<arg-value type="string">
+											<token-src-name />
+										</arg-value>
+									</arg-match-attr>
+								</token-query>
+							</arg-node-set>
+						</do-set-local-variable>
+						<do-if>
+							<arg-conditions>
+								<and>
+									<if-xpath op="true">count($pv_InActiveEntitlements-available)
+										= 1
+									</if-xpath>
+								</and>
+							</arg-conditions>
+							<arg-actions>
+								<do-trace-message color="white">
+									<arg-string>
+										<token-text xml:space="preserve">Inactive degEntitlementRef for </token-text>
+										<token-local-variable name="pv_Entitlement-Path" />
+										<token-text xml:space="preserve">available / Remove active degEntitlementRef for user DN: </token-text>
+										<token-src-dn />
+									</arg-string>
+								</do-trace-message>
+								<do-remove-src-attr-value class-name="User"
+									name="degEntitlementRef">
+									<arg-value type="structured">
+										<arg-component name="nameSpace">
+											<token-text xml:space="preserve">1</token-text>
+										</arg-component>
+										<arg-component name="volume">
+											<token-local-variable name="pv_Entitlement-objectDN" />
+										</arg-component>
+										<arg-component name="path">
+											<token-local-variable name="pv_Entitlement-Path" />
+										</arg-component>
+									</arg-value>
+								</do-remove-src-attr-value>
+							</arg-actions>
+							<arg-actions>
+								<do-trace-message color="white">
+									<arg-string>
+										<token-text xml:space="preserve">Toggle degEntitlementRef  </token-text>
+										<token-local-variable name="pv_Entitlement-Path" />
+										<token-text xml:space="preserve"> for user DN: </token-text>
+										<token-src-dn />
+										<token-text xml:space="preserve"> to inactive...</token-text>
+									</arg-string>
+								</do-trace-message>
+								<do-remove-src-attr-value class-name="User"
+									name="degEntitlementRef">
+									<arg-value type="structured">
+										<arg-component name="nameSpace">
+											<token-text xml:space="preserve">1</token-text>
+										</arg-component>
+										<arg-component name="volume">
+											<token-local-variable name="pv_Entitlement-objectDN" />
+										</arg-component>
+										<arg-component name="path">
+											<token-local-variable name="pv_Entitlement-Path" />
+										</arg-component>
+									</arg-value>
+								</do-remove-src-attr-value>
+								<do-add-src-attr-value class-name="User"
+									name="degEntitlementRef">
+									<arg-value type="structured">
+										<arg-component name="nameSpace">
+											<token-text xml:space="preserve">0</token-text>
+										</arg-component>
+										<arg-component name="volume">
+											<token-local-variable name="pv_Entitlement-objectDN" />
+										</arg-component>
+										<arg-component name="path">
+											<token-local-variable name="pv_Entitlement-Path" />
+										</arg-component>
+									</arg-value>
+								</do-add-src-attr-value>
+							</arg-actions>
+						</do-if>
+					</arg-actions>
+					<arg-actions />
+				</do-if>
+			</arg-actions>
+			<arg-actions />
+		</do-if>
+	</arg-actions>
+</do-for-each>

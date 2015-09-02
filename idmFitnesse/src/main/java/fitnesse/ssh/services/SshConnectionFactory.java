@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.jcabi.ssh.SSHByPassword;
 import com.jcabi.ssh.Shell;
+import com.jcabi.ssh.Shell.Plain;
 import com.jcraft.jsch.JSchException;
 
 import fitnesse.crypto.dbfit.util.crypto.CryptoFactories;
@@ -23,12 +24,12 @@ public class SshConnectionFactory {
 
 	protected static Map<String, SshConnectionDetail> connections = new ConcurrentHashMap<String, SshConnectionDetail>();
 
-	public static synchronized Shell getSshConnection(String alias) throws StopTestSlimException{
+	public static synchronized Plain getSshConnection(String alias) throws StopTestSlimException{
 		SshConnectionDetail connectionDetail = connections.get(alias);
 		if(null == connectionDetail){
 			throw new StopTestSlimException("There is no connection entry for the name: " + alias);
 		}
-		return connect(connectionDetail);
+		return connections.get(alias).getShell();
 		
 	}
 
@@ -36,8 +37,10 @@ public class SshConnectionFactory {
 			String host, 
 			int port, 
 			String user, 
-			String password){
-		connections.put(alias, new SshConnectionDetail(host,port,user,password));
+			String password) throws StopTestSlimException{
+		SshConnectionDetail d = new SshConnectionDetail(host,port,user,password);
+		connections.put(alias, d);
+		connections.get(alias).setShell(new Shell.Plain(connect(d)));
 	}
 //	public static synchronized Shell getSshConnection(
 //			String alias, 

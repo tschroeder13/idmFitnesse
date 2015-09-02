@@ -1,0 +1,32 @@
+!1 Variables
+!define testuser {cn=Michael Pomoroi,ou=people,o=sevenSeas}
+!define testuser2 {cn=Michael Pomoroi-Smith,ou=people,o=sevenSeas}
+!define testgroup {cn=HMS Bounty,ou=crews,ou=groups,o=sevenSeas}
+!define attrMap { !{sn:Pomoroi, givenName:Michael, description:FitNesse Test User} }
+
+
+|script:Ldap Operations|${local}|
+|create Object|${testuser}|With Attributes | ${attrMap} |And Objectclasses|top, person, inetOrgPerson|
+|ensure| object | ${testuser} | Exists| 
+|add Attribute |description| With Value | Smutje |To Object|${testuser}|
+|ensure|attribute |description| Exists For Object|${testuser}|
+|ensure|attribute|description|Contains Value |Smutje| For Object|${testuser}|
+|add Attribute Value Map | !{l:Port Royal, st:Baker Street} | To Object| ${testuser}|
+|add Attribute Value Map | !{l:Eastend, st:Backstreet} | To Object| ${testuser}|
+|ensure|attribute|st|Contains Value |Backstreet| For Object|${testuser}|
+|delete Attribute Value Map | !{st:Baker Street}|From Object|${testuser}|
+|reject|attribute|st|Contains Value |Baker Street| For Object|${testuser}|
+|delete Attribute |description|On Object|${testuser}|
+|reject|attribute |description| Exists For Object|${testuser}|
+
+
+!!|delete Object|${testuser}|
+
+
+deleteAttributeValueMapFromObject(Map<String, String>, String)
+addUserToGroup(String, String)
+removeUserFromGroup(String, String)
+setPasswordFor(String, String)
+setPassword(String, String)
+renameEntryTo(String, String)
+moveEntryTo(String, String)

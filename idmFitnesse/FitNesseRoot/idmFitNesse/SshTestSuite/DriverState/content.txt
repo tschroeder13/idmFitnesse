@@ -1,0 +1,4 @@
+|script:Ssh Nds Drv Operation|${meta} |admin.sa.system                    |${guhdemo_adm_pwd}|
+|ensure                      |driver  |!-BusinessLogic.driverset1.system-!|is    |running    |
+|check						 |driver  |!-BusinessLogic.driverset1.system-!|is                                 |running           |
+|check						 |driver  |!-BusinessLogic.driverset1.system-!|is                                 |stopped           |

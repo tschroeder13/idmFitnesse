@@ -32,8 +32,12 @@ public class LdapConnectionFactory {
 
 	protected static Map<String, LdapConnectionDetail> connections = new ConcurrentHashMap<String, LdapConnectionDetail>();
 
-	public static synchronized LDAPInterface getLdapConnection(String alias) throws LDAPException {
-		return (LDAPInterface) connections.get(alias).ldapConnectionPool.getConnection();
+	public static synchronized LDAPInterface getLdapConnection(String alias) throws StopTestSlimException {
+		try {
+			return (LDAPInterface) connections.get(alias).ldapConnectionPool.getConnection();
+		} catch (LDAPException e) {
+			throw new StopTestSlimException("Connection to host: \""+connections.get(alias).host+"\" could not be established",e);
+		}
 	}
 
 	public static synchronized LDAPInterface getLdapConnection(
@@ -42,7 +46,7 @@ public class LdapConnectionFactory {
 			int port, 
 			String bindDn, 
 			String bindPw, 
-			boolean ssl) throws StopTestSlimException, LDAPException{
+			boolean ssl) throws StopTestSlimException{
 		if(null == connections.get(alias)){
 			connections.put(alias, new LdapConnectionDetail());
 		}
@@ -57,7 +61,11 @@ public class LdapConnectionFactory {
 			return connectionDetails.ldapConnectionPool;
 		}
 		connectionDetails.ldapConnectionPool = (LDAPConnectionPool) connect(host, port, bindDn, bindPw, ssl);
-		return connectionDetails.ldapConnectionPool.getConnection();
+		try {
+			return connectionDetails.ldapConnectionPool.getConnection();
+		} catch (LDAPException e) {
+			throw new StopTestSlimException("Connection to host: \""+host+"\" could not be established",e);
+		}
 	}
 	
 	private static LDAPInterface connect(String host, int port, String bindDN, String bindPw, boolean ssl)

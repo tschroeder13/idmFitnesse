@@ -1,0 +1,18 @@
+|script:Ldap Operations|${meta}                                                                 |
+|replace Attributes    |${meta_trcLvlAttr}|Old Value|3|With New Value|0|on Object|${meta_lgcDrv}|
+
+|script     |Ssh Nds Drv Operation|${meta_adm_user}|${meta_adm_pwd}|${meta}|
+|stop Driver|${meta_lgcDrv}                                                |
+
+|Sleep|5000|
+
+|script      |Ssh Nds Drv Operation|${meta_adm_user}|${meta_adm_pwd}|${meta}|
+|ensure      |driver               |${meta_lgcDrv}  |is             |stopped|
+|start Driver|${meta_lgcDrv}                                                |
+|Sleep       |5000                                                          |
+|ensure      |driver               |${meta_lgcDrv}  |is             |running|
+
+|script      |Ssh Nds Drv Operation|${meta_adm_user}|${meta_adm_pwd}|${meta}|
+|start Driver|${meta_brdgDrv}                                               |
+|Sleep       |5000                                                          |
+|ensure      |driver               |${meta_brdgDrv} |is             |running|

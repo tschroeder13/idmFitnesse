@@ -1,0 +1,2 @@
+|script:Ssh Nds Job Operation|${meta_adm_user}|${meta_adm_pwd}|${meta}|
+|start job                 |${meta_trg_job}                         |

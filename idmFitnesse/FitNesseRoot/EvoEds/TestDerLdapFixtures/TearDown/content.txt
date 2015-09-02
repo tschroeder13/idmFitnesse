@@ -1,4 +1,0 @@
-!1 Close connections which were set up in SetUp
-
-!!|Script:Ldap Slim Setup|
-!!|close all|

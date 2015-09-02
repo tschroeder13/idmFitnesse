@@ -1,2 +1,0 @@
-|Query:Ldap Slim Search|${meta}|o=base,c=de|SUB|(cn=AT032*)|cn, givenName, sn|
-|dn|cn|givenName|sn|

@@ -22,7 +22,7 @@ public class LdapSlimSetup {
 			boolean ssl,
 			String bindDn, 
 			String bindPw 
-			) throws StopTestSlimException, LDAPException {
+			) throws StopTestSlimException {
 		LdapConnectionFactory.getLdapConnection(alias, host, port, bindDn, bindPw, ssl);
 	}
 	
@@ -30,11 +30,11 @@ public class LdapSlimSetup {
 		return "This class ";
 	}
 	
-	public boolean isConnected(String alias) throws LDAPException {
+	public boolean isConnected(String alias) throws StopTestSlimException {
 		return ((LDAPConnection)LdapConnectionFactory.getLdapConnection(alias)).isConnected();
 	}
 
-	public boolean close(String alias) throws LDAPException {
+	public boolean close(String alias) throws StopTestSlimException {
 		((LDAPConnection)LdapConnectionFactory.getLdapConnection(alias)).close();
 		try {
 		    TimeUnit.MILLISECONDS.sleep(500);
@@ -44,7 +44,7 @@ public class LdapSlimSetup {
 		return !isConnected(alias);
 	}
 
-	public void closeAll() throws LDAPException {
+	public void closeAll() throws StopTestSlimException {
 		Set<String> names = LdapConnectionFactory.getConnections().keySet();
 		for (String name : names){
 			close(name);

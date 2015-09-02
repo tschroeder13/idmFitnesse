@@ -1,2 +1,0 @@
-!1 Test suite zum testen der LDAP Fixtures
-!contents -R2 -g -p -f -h

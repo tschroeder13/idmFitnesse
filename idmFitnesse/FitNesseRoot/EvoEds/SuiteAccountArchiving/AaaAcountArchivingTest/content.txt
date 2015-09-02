@@ -1,0 +1,55 @@
+
+!***< hidden
+!define dn {${test_user},${user_container}}
+***!
+Es sollen zeitnah beide Prozessschritte für den User ${dn} getestet werden.
+
+!1 User anlegen
+
+|script:Ldap Operations|${meta}                                                                |
+|create Object         |${dn} |With Attributes|${attributes}|And Objectclasses|${objectclasses}|
+|ensure                |object|${dn}          |exists                                          |
+
+!1 Trigger auslösen
+
+|script:Ssh Nds Job Operation|${meta_adm_user}|${meta_adm_pwd}|${meta}|
+|start job                 |${meta_trg_job}                         |
+
+!define now {!today (yyyyMMddHHmmss)Z}
+
+!2 DELETE ME!
+|script:Ldap Operations|${meta}                                                       |
+|add Attribute         |degArchivingProcessStartTime|With Value|${now}|To Object|${dn}|
+
+!1 Ersten Lauf verifizieren
+
+|script:Ldap Operations|${meta}                                                                         |
+|ensure                |attribute|degArchivingProcessStartTime|Exists For Object|${dn}                  |
+|ensure                |attribute|degArchivingProcessStartTime|Contains Value   |${now}|For Object|${dn}|
+
+!1 degArchivingProcessStartTime umsetzen
+|script:Ldap Operations|${meta}                                                                                                                                        |
+|replace Attributes    |degArchivingProcessStartTime|Old Value                   |${now}           |With New Value          |${second_offenders}000000Z|on Object|${dn}|
+|ensure                |attribute                   |degArchivingProcessStartTime|Exists For Object|${dn}                                                              |
+|ensure                |attribute                   |degArchivingProcessStartTime|Contains Value   |${second_offenders}000000Z|For Object                |${dn}          |
+
+!1 Trigger erneut auslösen
+
+|script:Ssh Nds Job Operation|${meta_adm_user}|${meta_adm_pwd}|${meta}|
+|start job                 |${meta_trg_job}                         |
+
+!2 DELETE ME!
+|script:Ldap Operations|${meta}                     |
+|move Entry            |${dn}|To|${archiv_container}|
+
+
+!1 Zweiten Lauf verifizieren
+|script:Ldap Operations|${meta}                                       |
+|ensure                |object|${test_user},${archiv_container}|exists|
+
+|Sleep|10000|
+
+!2 Testobjekt wegräumen
+|script:Ldap Operations|${meta}                                   |
+|delete Object         |${test_user},${archiv_container}|if exists|
+

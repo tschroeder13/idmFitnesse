@@ -1,0 +1,15 @@
+!****> Globale Variablen
+!define meta {idmtest}
+!define meta_host {149.216.14.183}
+!define meta_port {636}
+!define meta_ssl {true}
+!define meta_adm_user {cn=AT0320,ou=Special,ou=Applications,o=base,c=DE}
+!define meta_adm_pwd {ENC(yJoorVyvjH_QoCQsfeXmLQ)}
+
+!define meta_trg_job {cn=IDM_Process_1_1_Delete_inactives_365,cn=BusinessLogic0,cn=DriverSet1,ou=IDM,o=SYSTEM,c=DE}
+!define meta_lgcDrv {cn=BusinessLogic0,cn=DriverSet1,ou=IDM,o=SYSTEM,c=DE}
+!define meta_trcLvlAttr {DirXML-TraceLevel}
+!define meta_brdgDrv {cn=IDMTEST_TO_METATREE,cn=DriverSet1,ou=IDM,o=SYSTEM,c=DE}
+***!
+
+!contents -R2 -g -p -f -h

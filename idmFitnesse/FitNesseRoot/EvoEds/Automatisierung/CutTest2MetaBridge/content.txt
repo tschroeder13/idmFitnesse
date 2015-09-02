@@ -1,0 +1,21 @@
+
+|script     |Ssh Nds Drv Operation|${meta_adm_user}|${meta_adm_pwd}|${meta}|
+|stop Driver|${meta_brdgDrv}                                                |
+|Sleep      |5000                                                          |
+|ensure     |driver               |${meta_brdgDrv}  |is             |stopped|
+
+
+|script:Ldap Operations|${meta}                                                                 |
+|replace Attributes    |${meta_trcLvlAttr}|Old Value|0|With New Value|3|on Object|${meta_lgcDrv}|
+
+|script     |Ssh Nds Drv Operation|${meta_adm_user}|${meta_adm_pwd}|${meta}|
+|stop Driver|${meta_lgcDrv}                                                |
+
+|Sleep|5000|
+
+|script      |Ssh Nds Drv Operation|${meta_adm_user}|${meta_adm_pwd}|${meta}|
+|ensure     |driver               |${meta_lgcDrv}  |is             |stopped|
+|start Driver|${meta_lgcDrv}                                                |
+|Sleep|5000|
+|ensure     |driver               |${meta_lgcDrv}  |is             |running|
+

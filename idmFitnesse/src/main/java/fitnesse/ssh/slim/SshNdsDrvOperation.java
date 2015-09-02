@@ -4,35 +4,29 @@ import java.io.IOException;
 
 import com.jcabi.ssh.Shell;
 
-import fitnesse.crypto.dbfit.util.crypto.CryptoFactories;
-import fitnesse.crypto.dbfit.util.crypto.CryptoService;
 import fitnesse.slim.SlimException;
 import fitnesse.slim.StopTestSlimException;
 import fitnesse.ssh.services.SshConnectionFactory;
 
-public class SshNdsDrvOperation {
+public class SshNdsDrvOperation extends SshNdsOperationBase {
 
-	String dottedAdminDn;
-	String password;
-	String alias;
-	private static StringBuilder sb = new StringBuilder(); 
-	private static CryptoService cs= CryptoFactories.getCryptoServiceFactory()
-			.getCryptoService(CryptoFactories.getCryptoKeyStoreFactory().newInstance());
-
-	
-	public SshNdsDrvOperation(String alias, String dottedAdminDn, String passsword) {
-		super();
-		this.dottedAdminDn = dottedAdminDn;
-		this.password = passsword;
-		this.alias = alias;
+	public SshNdsDrvOperation(String ldapAdminDn, String password, String alias) {
+		super(ldapAdminDn, password, alias);
 	}
 
-	public String driverIs(String dottedDriverDn, String expectedState) throws IOException, SlimException {
+	public boolean driverIs(String ldapDriverDn, String expectedState) throws IOException, SlimException{
+		String actualState = driverIs(ldapDriverDn);
+		return expectedState.equals(actualState);
+	}
+
+	public String driverIs(String ldapDriverDn) throws IOException, SlimException {
 		initBaseOptions();
 		sb.append("-getstate ");
-		sb.append(dottedDriverDn);
-		String result = new Shell.Plain(SshConnectionFactory.getSshConnection(alias)).exec(sb.toString());
-		switch (result) {
+		sb.append(ldapDriverDn);
+		String result = SshConnectionFactory.getSshConnection(alias).exec(sb.toString());
+//		System.out.println(result.getClass().getName()+": "+result);
+//		System.out.println(result);
+		switch (result.trim()) {
 		case "0": return "stopped";
 		case "1": return "starting";
 		case "2": return "running";
@@ -43,24 +37,21 @@ public class SshNdsDrvOperation {
 		}
 	}
 	
-	public boolean startDriver() {
-		return false;
+	public boolean startDriver(String ldapDriverDn) throws StopTestSlimException, IOException {
+		initBaseOptions();
+		sb.append("-start ");
+		sb.append(ldapDriverDn);
+		String result = SshConnectionFactory.getSshConnection(alias).exec(sb.toString());
+		System.out.println(result);
+		return result.trim().equals("0");
 	}
-	public boolean stopDriver() {
-		return false;
-	}
-	
-	private String initBaseOptions(){
-		sb.delete(0, sb.length());
-		sb.append("dxcmd -host ");
-		sb.append(SshConnectionFactory.getConnections().get(alias).host);
-		sb.append(" -user ");
-		sb.append(dottedAdminDn);
-		sb.append(" -password ");
-		sb.append(cs.decrypt(password.substring(4,password.length()-1)));
-		sb.append(" --v -s  ");
-		
-		return sb.toString();
+	public boolean stopDriver(String ldapDriverDn) throws StopTestSlimException, IOException {
+		initBaseOptions();
+		sb.append("-stop ");
+		sb.append(ldapDriverDn);
+		String result = SshConnectionFactory.getSshConnection(alias).exec(sb.toString());
+		System.out.println(result);
+		return result.trim().equals("0");
 	}
 	
 }

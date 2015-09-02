@@ -1,0 +1,311 @@
+!1 Test suite für den Accountarchivierungs-Prozess
+!****> Globale Variablen
+!define meta {idmtest}
+!define meta_host {149.216.14.183}
+!define meta_port {636}
+!define meta_ssl {true}
+!define meta_adm_user {cn=AT0320,ou=Special,ou=Applications,o=base,c=DE}
+!define meta_adm_pwd {ENC(yJoorVyvjH_QoCQsfeXmLQ)}
+
+!define debutantTS {${= !monthsFromToday (yyyyMMdd) -12 =}000000Z} 
+${debutantTS}
+!define second_offenders {${= !weekDaysFromToday (yyyyMMdd) -10 =}}
+${second_offenders}
+!define test_user {cn=T99991}
+!define user_container {ou=intranet,o=base,c=DE}
+!define archiv_container {o=Inactives,c=DE}
+!define attributes {!{cn: ${test_user}, sn: Schroeder_Test,  givenName: Tobias_Test, degDeletedTimestamp: ${debutantTS}, co: Germany, company: Evonik Business Services (Legal siehe 810004), costCenter: 12345, degAccountType: primary, degAdsOfficeString: - // Marl // - / -, degAutoGroupMembershipStatus: FALSE, degBusinessArea: Other, degBusinessAreaID: 6, degChargeIDM: FALSE, degChargeSEC: FALSE, degChargeWAN: FALSE, degCompanyCode: 583, degCompanyNumber: 800045, degCountryCode: 11, degCountryISOcodeCompany: DE, degCountryISOcodeLocation: DE, degDeleted: 1, degExternalEmployee: 0, degHRStatus: 3, degImportSecret: 819363, degIntPhoneBook: FALSE, degITCostcenter: 12345, degKontArtID: KST, degLocationCode: 330, degPwdSyncDirection: 3, degRegion: Europe, degServiceLDAP: TRUE, degServiceRASrescueMode: FALSE, degTochterID: 1, degWANCode: 156, displayName: Tobias_Test Schroeder_Test, fullName: Tobias_Test Schroeder_Test, l: Marl, postalCode: 45772 }}
+
+!define objectclasses {degContact, degUser, DirXML-EntitlementRecipient, DirXML-PasswordSyncStatusUser, inetOrgPerson, ndsLoginProperties, organizationalPerson, Person, srvprvUserAux, Top}
+!define meta_trg_job {cn=IDM_Process_1_1_Delete_inactives_365,cn=BusinessLogic0,cn=DriverSet1,ou=IDM,o=SYSTEM,c=DE}
+
+***!
+!img-r -m 10 files/images/IDM_P_1.1_deactive_inactive_1_4.png
+Der Archivierungsprozess bezieht sich Konten in der EDS und den angeschlossenen AD Domänen. In der EDS sind die Teilbäume "o=base,c=DE" und "o=Internet,c=DE" zu betrachten. Ist ein Account in der EDS ein Jahr im degHRStatus = 3, also inaktiv, soll er in den Container "o=Inactives,c=DE" verschoben werden. Die verstrichene Zeit wird anhand des degDeletedTimestamp berechnet, der als "Generalized String" im Schema definiert ist. Während der Archivierung ist sicherzustellen, dass ausgelöste asynchrone Prozesse in anderen Treibern abgeschlossen werden können, bevor das Konto endgültig archiviert wird. 
+Um nun die Konsistenz zu gewährleisten, wird der Archivierungsprozess zeitlich in zwei Schritte unterteilt. Im ersten Schritte werden die asynchronen Przoesse ausgelöst und eine Zeitstempel gesetzt. Dieser wird im zweiten Schritt verwendet um diejenigen Konten zu identifizieren, für die eben diese Pause verstrichen ist und in der die nebenläufigen Prozesse beendet sind.    
+
+!2 Der Prozess
+Zunächst wird der gesamte Prozess zeitgesteuert über einen Job gestartet. 
+Auf diesen Trigger hin werden beide Teilbäume mit einer LDAP-Query (ECMAScript) durchsucht.
+{{{(&(objectClass=degUser)(degHRStatus=3)()degDeletedTimestamp<=$now-365)}}}
+Die Suchergebnisse müssen die benötigten Attribute gleich mitliefern, die da wären
+ 1 cn
+ 2 degHRStatus
+ 3 degDeletedTimestamp
+ 4 nrfAssignedResources
+ 5 degEntitlementRef
+ 6 degArchivingProcessStartTime
+
+Beide Ergebnismengen werden in zwei Mengen umsortiert, die jenigen mit einer gesetzten degArchivingProcessStartTime und einem Wert der einer Ausführungspause von 10 Tagen entspricht, und die jenige Menge die keine degArchivingProcessStartTime gesetzt haben. 
+
+Gesamtmenge aller Archivierungskandidaten: {{{(&(objectClass=degUser)(degHRStatus=3)(degDeletedTimestamp<=$now-365))
+}}}
+Menge aller Debütanten(debutants): {{{
+(&
+  (objectClass=degUser)
+  (degHRStatus=3)
+  (degDeletedTimestamp<=$now-365)
+  (!(degArchivingProcessStartTime=*))
+)
+}}}
+Menge aller Zweittäter (second offender): {{{
+(&
+  (objectClass=degUser)
+  (degHRStatus=3)
+  (degDeletedTimestamp<=$now-365)
+  (degArchivingProcessStartTime<=$now-10)
+)
+}}}
+
+!2 Schritt 1: 
+Den Debütanten werden 
+ 1. die nrfAssignedResources (<do-revoke-resource>) und
+!****> Code Example
+{{{
+<do-for-each>
+	<arg-node-set>
+		<token-local-variable name="evo_pv_deletionCandidates"/>
+	</arg-node-set>
+	<arg-actions>
+		<do-for-each>
+			<arg-node-set>
+				<token-xpath expression="$current-node/attr[@attr-name='nrfAssignedResources']/value"/>
+			</arg-node-set>
+			<arg-actions>
+				<do-trace-message level="0">
+					<arg-string>
+						<token-text xml:space="preserve">resourceDN: </token-text>
+						<token-xpath expression="substring-before($current-node/text(),'#')"/>
+					</arg-string>
+				</do-trace-message>
+				<do-set-local-variable name="evo_pv_resourceDN" scope="policy">
+					<arg-string>
+						<token-xpath expression="substring-before($current-node/text(),'#')"/>
+					</arg-string>
+				</do-set-local-variable>
+				<do-remove-resource id="~UAProvAdmin~" resource-id="$evo_pv_resourceDN$" time-out="300000" url="~UAProvURL~">
+					<arg-password>
+						<token-text xml:space="preserve">asdfasdfasdf</token-text>
+					</arg-password>
+					<arg-string name="description">
+						<token-text xml:space="preserve">User archived</token-text>
+					</arg-string>
+				</do-remove-resource>
+			</arg-actions>
+		</do-for-each>
+	</arg-actions>
+</do-for-each>
+}}}
+****! 
+ 2. die degEntitlements entzogen und 
+!****> Code Exmample
+	{{{ <do-set-local-variable name="pv_degEntitlementRef"
+	scope="policy">
+	<arg-node-set>
+		<token-src-attr class-name="User" name="degEntitlementRef" />
+	</arg-node-set>
+</do-set-local-variable>
+<do-for-each>
+	<arg-node-set>
+		<token-local-variable name="pv_degEntitlementRef" />
+	</arg-node-set>
+	<arg-actions>
+		<do-set-local-variable name="pv_Entitlement-State"
+			scope="policy">
+			<arg-string>
+				<token-xpath expression="$current-node/component[@name='nameSpace']" />
+			</arg-string>
+		</do-set-local-variable>
+		<do-set-local-variable name="pv_Entitlement-objectDN"
+			scope="policy">
+			<arg-string>
+				<token-xpath expression="$current-node/component[@name='volume']" />
+			</arg-string>
+		</do-set-local-variable>
+		<do-set-local-variable name="pv_Entitlement-Path"
+			scope="policy">
+			<arg-string>
+				<token-xpath expression="$current-node/component[@name='path']" />
+			</arg-string>
+		</do-set-local-variable>
+		<do-if>
+			<arg-conditions>
+				<and>
+					<if-local-variable name="pv_Entitlement-Path" op="available" />
+					<if-local-variable mode="regex" name="pv_Entitlement-Path"
+						op="equal">(?i)^Group\|(OU|C|L)\|.+$
+					</if-local-variable>
+				</and>
+			</arg-conditions>
+			<arg-actions>
+				<do-if>
+					<arg-conditions>
+						<and>
+							<if-local-variable name="pv_Entitlement-State"
+								op="available" />
+							<if-local-variable mode="nocase" name="pv_Entitlement-State"
+								op="equal">1</if-local-variable>
+						</and>
+					</arg-conditions>
+					<arg-actions>
+						<do-set-local-variable name="pv_InActiveEntitlements-available"
+							scope="policy">
+							<arg-node-set>
+								<token-query class-name="User" datastore="src">
+									<arg-dn>
+										<token-global-variable name="gcv_base_container_all_user_objects" />
+									</arg-dn>
+									<arg-match-attr name="degEntitlementRef">
+										<arg-value type="structured">
+											<arg-component name="nameSpace">
+												<token-text xml:space="preserve">0</token-text>
+											</arg-component>
+											<arg-component name="volume">
+												<token-global-variable name="dirxml.auto.driverdn" />
+											</arg-component>
+											<arg-component name="path">
+												<token-local-variable name="pv_Entitlement-Path" />
+											</arg-component>
+										</arg-value>
+									</arg-match-attr>
+									<arg-match-attr name="CN">
+										<arg-value type="string">
+											<token-src-name />
+										</arg-value>
+									</arg-match-attr>
+								</token-query>
+							</arg-node-set>
+						</do-set-local-variable>
+						<do-if>
+							<arg-conditions>
+								<and>
+									<if-xpath op="true">count($pv_InActiveEntitlements-available)
+										= 1
+									</if-xpath>
+								</and>
+							</arg-conditions>
+							<arg-actions>
+								<do-trace-message color="white">
+									<arg-string>
+										<token-text xml:space="preserve">Inactive degEntitlementRef for </token-text>
+										<token-local-variable name="pv_Entitlement-Path" />
+										<token-text xml:space="preserve">available / Remove active degEntitlementRef for user DN: </token-text>
+										<token-src-dn />
+									</arg-string>
+								</do-trace-message>
+								<do-remove-src-attr-value class-name="User"
+									name="degEntitlementRef">
+									<arg-value type="structured">
+										<arg-component name="nameSpace">
+											<token-text xml:space="preserve">1</token-text>
+										</arg-component>
+										<arg-component name="volume">
+											<token-local-variable name="pv_Entitlement-objectDN" />
+										</arg-component>
+										<arg-component name="path">
+											<token-local-variable name="pv_Entitlement-Path" />
+										</arg-component>
+									</arg-value>
+								</do-remove-src-attr-value>
+							</arg-actions>
+							<arg-actions>
+								<do-trace-message color="white">
+									<arg-string>
+										<token-text xml:space="preserve">Toggle degEntitlementRef  </token-text>
+										<token-local-variable name="pv_Entitlement-Path" />
+										<token-text xml:space="preserve"> for user DN: </token-text>
+										<token-src-dn />
+										<token-text xml:space="preserve"> to inactive...</token-text>
+									</arg-string>
+								</do-trace-message>
+								<do-remove-src-attr-value class-name="User"
+									name="degEntitlementRef">
+									<arg-value type="structured">
+										<arg-component name="nameSpace">
+											<token-text xml:space="preserve">1</token-text>
+										</arg-component>
+										<arg-component name="volume">
+											<token-local-variable name="pv_Entitlement-objectDN" />
+										</arg-component>
+										<arg-component name="path">
+											<token-local-variable name="pv_Entitlement-Path" />
+										</arg-component>
+									</arg-value>
+								</do-remove-src-attr-value>
+								<do-add-src-attr-value class-name="User"
+									name="degEntitlementRef">
+									<arg-value type="structured">
+										<arg-component name="nameSpace">
+											<token-text xml:space="preserve">0</token-text>
+										</arg-component>
+										<arg-component name="volume">
+											<token-local-variable name="pv_Entitlement-objectDN" />
+										</arg-component>
+										<arg-component name="path">
+											<token-local-variable name="pv_Entitlement-Path" />
+										</arg-component>
+									</arg-value>
+								</do-add-src-attr-value>
+							</arg-actions>
+						</do-if>
+					</arg-actions>
+					<arg-actions />
+				</do-if>
+			</arg-actions>
+			<arg-actions />
+		</do-if>
+	</arg-actions>
+</do-for-each>
+}}}
+
+***!	
+  3. die aktuelle Zeit auf den degArchivingProcessStartTime kopiert. Damit kann dieser Kandidat im zweiten Schritt nach der Verarbeitungspause von 10 Tagen abschließend archiviert werden.
+  
+!2 Schritt 2:
+Den vorbearbeiteten Accounts werden
+ 1. entziehen der verbliebenen manuellen Gruppen im EDS
+!****> Code Example
+{{{<do-for-each>
+	<arg-node-set>
+		<token-local-variable name="pv_Groupmemberships"/>
+	</arg-node-set>
+	<arg-actions>
+		<do-if>
+			<arg-conditions>
+				<and>
+					<if-local-variable mode="regex" name="current-node" op="equal">(?i)^.+\\groups\\IDM\\(Department|Location|Company)\\IDM_.+$</if-local-variable>
+				</and>
+			</arg-conditions>
+			<arg-actions>
+				<do-trace-message color="white">
+					<arg-string>
+						<token-text xml:space="preserve">Remove all Group Memberships (user gets inactive or accouttype not primary) for user DN: </token-text>
+						<token-src-dn/>
+					</arg-string>
+				</do-trace-message>
+				<do-remove-src-attr-value class-name="User" name="Group Membership">
+					<arg-value type="string">
+						<token-local-variable name="current-node"/>
+					</arg-value>
+				</do-remove-src-attr-value>
+				<do-remove-src-attr-value class-name="User" name="Security Equals">
+					<arg-value type="string">
+						<token-local-variable name="current-node"/>
+					</arg-value>
+				</do-remove-src-attr-value>
+			</arg-actions>
+			<arg-actions/>
+		</do-if>
+	</arg-actions>
+</do-for-each> 
+ }}}
+ 
+***!
+ 2. Archivieren im EDS
+ 3. Archivieren im AD
+  a. detektieren des <do-move> mit DestDN in Subtree ou=Archiv,ou=IDM,dc...
+  b. vor dem Event den SourceDN vom Member-Attribut aller Gruppen im AD löschen.
+  c. Move fortsetzen 
+     
+  
+!contents -R2 -g -p -f -h
