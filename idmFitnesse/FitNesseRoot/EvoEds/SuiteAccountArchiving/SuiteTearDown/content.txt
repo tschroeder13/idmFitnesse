@@ -1,2 +1,9 @@
+!1 Clean up Resources
+
+!!!|script|Ldap Opertaions|${meta}|
+!!!|delete object|${user_container}|if exists|
+
+!1 close connections
+
 |script:Ldap Slim Setup|
 |close all             |

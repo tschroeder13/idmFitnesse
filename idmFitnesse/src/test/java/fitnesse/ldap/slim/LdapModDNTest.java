@@ -26,14 +26,14 @@ public class LdapModDNTest {
 	static String admin = "cn=AT0320,ou=Special,ou=Applications,o=base,c=DE";
 	static String password = "ENC(yJoorVyvjH_QoCQsfeXmLQ)";
 	static Date now = new Date();
-	static HashMap<String, String> attributeMap;
+	static HashMap<String, Object> attributeMap;
 
 	static LdapOperations op;
 	
 	@Before
 	public void setUp() throws SlimException {
 		cal.add(Calendar.YEAR, -1);
-		attributeMap= new HashMap<String, String>(){{
+		attributeMap= new HashMap<String, Object>(){{
 			put("sn","testuser");
 			put("cn", "T99991");
 			put("sn", "Schroeder_Test");

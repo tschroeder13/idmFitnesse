@@ -1,8 +1,21 @@
+!1 Import dependencies
+
 |import            |
 |fitnesse.fixtures |
 |fitnesse.ldap.slim|
 |fitnesse.ssh.slim |
 
+!1 Setup Connections
+
 |script:Ldap Slim Setup|${meta}|${meta_host}|${meta_port}|${meta_ssl}|${meta_adm_user}|${meta_adm_pwd}|
 
 |script:Ssh Slim Setup|${meta}|${meta_host}|at0320|${meta_adm_pwd}|
+
+!*< hide
+!1 Create resources
+
+!!|script:Ldap Operations|${meta}|
+!!|create object|${user_container}|with attributes||and objectclasses|top, organizationalUnit|
+*!
+
+

@@ -1,0 +1,893 @@
+Diese Policy ist unterteilt in die Abschnitte
+ 1. Setup der loaklen Variablen
+ 2. Query in der Teilbaum "base.DE"
+ 3. Query in der Teilbaum "internet.DE"
+ 4. Entzug der Ressourcen und degEntitlements ("archiving debutants")
+ 5. Entzug der manuell vergebenen Gruppen ("second offenders")
+ 6. Archivierung mit degInactive=TRUE über den IDM_MOVE Treiber
+ 7. zyklishes aufräumen der Assoziationen im Teilbaum "inactives.DE"
+
+{{{<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE policy PUBLIC "policy-builder-dtd" "D:\programme_t13699\designer45_64\plugins\com.novell.idm.policybuilder_4.0.0.201507161513\DTD\dirxmlscript4.5.dtd"><policy xmlns:es="http://www.novell.com/nxsl/ecmascript" xmlns:itsonHelper="http://www.novell.com/nxsl/java/com.itson.dirxml.itsonHelper">
+	<rule>
+		<description>Trigger: Setup - IDM_Process_1_1_Delete_inactives_365 </description>
+		<comment xml:space="preserve">Delet Accounts with degDeletedTimestamp more then 365 days ago</comment>
+		<comment name="author" xml:space="preserve">t13699</comment>
+		<comment name="lastchanged" xml:space="preserve">04.2015</comment>
+		<conditions>
+			<and>
+				<if-operation mode="case" op="equal">trigger</if-operation>
+				<if-op-property mode="nocase" name="source" op="equal">IDM_Process_1_1_Delete_inactives_365</if-op-property>
+			</and>
+		</conditions>
+		<actions>
+			<do-set-local-variable name="evo_pv_lifecycleTrailingOffset" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">-</token-text>
+					<token-global-variable name="evo_gcv_ds_lifecycleTrailingTime"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_one_year_before" scope="policy">
+				<arg-string>
+					<token-convert-time dest-format="yyyyMMddHHmmss" dest-lang="de-DE" dest-tz="Europe/Berlin" offset="$evo_pv_waitOffset$" offset-unit="day" src-format="yyyyMMddHHmmss" src-lang="de-DE" src-tz="Europe/Berlin">
+						<token-time format="yyyyMMddHHmmss"/>
+					</token-convert-time>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_waitOffset" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">-</token-text>
+					<token-global-variable name="evo_gcv_ds_archiveProcessWaitTime"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_tenDaysBefore" scope="policy">
+				<arg-string>
+					<token-convert-time dest-format="yyyyMMddHHmmss" dest-lang="de-DE" dest-tz="Europe/Berlin" offset="$evo_pv_waitOffset$" offset-unit="day" src-format="yyyyMMddHHmmss" src-lang="de-DE" src-tz="Europe/Berlin">
+						<token-time format="yyyyMMddHHmmss"/>
+					</token-convert-time>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_deletionDebutants" scope="policy">
+				<arg-node-set/>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_deletionSecondOffenders" scope="policy">
+				<arg-node-set/>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_ldap_host" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">localhost</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_ldap_port" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">389</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_ldap_filter" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">(&amp;(objectClass=degUser)(degDeletedTimestamp&lt;=$evo_pv_one_year_before$Z))</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_ldap_use_tls_or_ssl" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">false</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_ldap_user" scope="policy">
+				<arg-string>
+					<token-global-variable name="evonik.eds.DXCmdUserLdap"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_ldap_pwd" scope="policy">
+				<arg-string>
+					<token-named-password name="evonik.eds.dxcmdUserPW"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_ldap_search_scope" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">sub</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_ldap_search_attribute_list" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">cn,degHRStatus,degDeletedTimeStamp,nrfAssignedResources,degEntitlementRef,degArchivingProcessStartTime</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_ldap_search_max_result_set" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">0</token-text>
+				</arg-string>
+			</do-set-local-variable>
+		</actions>
+	</rule>
+	<rule>
+		<description>Trigger: Query "base.DE" - IDM_Process_1_1_Delete_inactives_365 </description>
+		<comment xml:space="preserve">Delet Accounts with degDeletedTimestamp more then 365 days ago Search in o=base,c=DE</comment>
+		<comment name="author" xml:space="preserve">t13699</comment>
+		<comment name="lastchanged" xml:space="preserve">04.2015</comment>
+		<conditions>
+			<and>
+				<if-operation mode="case" op="equal">trigger</if-operation>
+				<if-op-property mode="nocase" name="source" op="equal">IDM_Process_1_1_Delete_inactives_365</if-op-property>
+				<if-local-variable name="evo_pv_ldap_filter" op="available"/>
+				<if-local-variable mode="nocase" name="evo_pv_ldap_filter" op="not-equal"/>
+			</and>
+		</conditions>
+		<actions>
+			<do-set-local-variable name="evo_pv_ldap_search_base" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">o=base,c=DE</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_logMsg" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">Trigger IDM_Process_1_1_Delete_inactives_365\ 
+Filter:                 $evo_pv_ldap_filter$\ 
+Host:                   $evo_pv_ldap_host$\ 
+Port:                         $evo_pv_ldap_port$\ 
+Security:                 $evo_pv_ldap_use_tls_or_ssl$\ 
+Bind DN:                $evo_pv_ldap_user$\ 
+Search Base:        $evo_pv_ldap_search_base$\ 
+Search Scope:        $evo_pv_ldap_search_scope$\ 
+Attributes:                $evo_pv_ldap_search_attribute_list$</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-trace-message level="0">
+				<arg-string>
+					<token-local-variable name="evo_pv_logMsg"/>
+				</arg-string>
+			</do-trace-message>
+			<do-set-local-variable name="evo_pv_query_result" scope="policy">
+				<arg-node-set>
+					<token-xpath expression="es:ldapSearch_jndi($evo_pv_ldap_host, $evo_pv_ldap_port, $evo_pv_ldap_use_tls_or_ssl, &quot;&quot;, &quot;&quot;, $evo_pv_ldap_user, $evo_pv_ldap_pwd, $evo_pv_ldap_search_base, $evo_pv_ldap_search_scope, $evo_pv_ldap_filter, $evo_pv_ldap_search_attribute_list, $evo_pv_ldap_search_max_result_set, &apos;slash&apos;)"/>
+				</arg-node-set>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_check_query_result" scope="policy">
+				<arg-string>
+					<token-xpath expression="count($evo_pv_query_result)"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-if>
+				<arg-conditions>
+					<and>
+						<if-local-variable mode="nocase" name="evo_pv_check_query_result" op="not-equal">0</if-local-variable>
+					</and>
+				</arg-conditions>
+				<arg-actions>
+					<do-for-each>
+						<arg-node-set>
+							<token-local-variable name="evo_pv_query_result"/>
+						</arg-node-set>
+						<arg-actions>
+							<do-set-local-variable name="evo_pv_archProcTS" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/attr[@attr-name='degArchivingProcessStartTime']/value"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-if>
+								<arg-conditions>
+									<and>
+										<if-local-variable mode="nocase" name="evo_pv_archProcTS" op="equal"/>
+									</and>
+								</arg-conditions>
+								<arg-actions>
+									<do-set-local-variable name="evo_pv_deletionDebutants" scope="policy">
+										<arg-node-set>
+											<token-local-variable name="evo_pv_deletionDebutants"/>
+											<token-local-variable name="current-node"/>
+										</arg-node-set>
+									</do-set-local-variable>
+								</arg-actions>
+								<arg-actions>
+									<do-if>
+										<arg-conditions>
+											<and>
+												<if-local-variable mode="nocase" name="evo_pv_archProcTS" op="lt">$evo_pv_tenDaysBefore$</if-local-variable>
+											</and>
+										</arg-conditions>
+										<arg-actions>
+											<do-set-local-variable name="evo_pv_deletionSecondOffenders" scope="policy">
+												<arg-node-set>
+													<token-local-variable name="evo_pv_deletionSecondOffenders"/>
+													<token-local-variable name="current-node"/>
+												</arg-node-set>
+											</do-set-local-variable>
+										</arg-actions>
+										<arg-actions/>
+									</do-if>
+								</arg-actions>
+							</do-if>
+						</arg-actions>
+					</do-for-each>
+				</arg-actions>
+				<arg-actions/>
+			</do-if>
+		</actions>
+	</rule>
+	<rule>
+		<description>Trigger: Query "internet.DE" - IDM_Process_1_1_Delete_inactives_365 </description>
+		<comment xml:space="preserve">Delet Accounts with degDeletedTimestamp more then 365 days ago search in o=internet,c=DE</comment>
+		<comment name="author" xml:space="preserve">t13699</comment>
+		<comment name="lastchanged" xml:space="preserve">04.2015</comment>
+		<conditions>
+			<and>
+				<if-operation mode="case" op="equal">trigger</if-operation>
+				<if-op-property mode="nocase" name="source" op="equal">IDM_Process_1_1_Delete_inactives_365</if-op-property>
+				<if-local-variable name="evo_pv_ldap_filter" op="available"/>
+				<if-local-variable mode="nocase" name="evo_pv_ldap_filter" op="not-equal"/>
+			</and>
+		</conditions>
+		<actions>
+			<do-set-local-variable name="evo_pv_ldap_search_base" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">o=internet,c=DE</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_logMsg" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">Trigger IDM_Process_1_1_Delete_inactives_365\ 
+Filter:                 $evo_pv_ldap_filter$\ 
+Host:                   $evo_pv_ldap_host$\ 
+Port:                         $evo_pv_ldap_port$\ 
+Security:                 $evo_pv_ldap_use_tls_or_ssl$\ 
+Bind DN:                $evo_pv_ldap_user$\ 
+Search Base:        $evo_pv_ldap_search_base$\ 
+Search Scope:        $evo_pv_ldap_search_scope$\ 
+Attributes:                $evo_pv_ldap_search_attribute_list$</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-trace-message level="0">
+				<arg-string>
+					<token-local-variable name="evo_pv_logMsg"/>
+				</arg-string>
+			</do-trace-message>
+			<do-set-local-variable name="evo_pv_query_result" scope="policy">
+				<arg-node-set>
+					<token-xpath expression="es:ldapSearch_jndi($evo_pv_ldap_host, $evo_pv_ldap_port, $evo_pv_ldap_use_tls_or_ssl, &quot;&quot;, &quot;&quot;, $evo_pv_ldap_user, $evo_pv_ldap_pwd, $evo_pv_ldap_search_base, $evo_pv_ldap_search_scope, $evo_pv_ldap_filter, $evo_pv_ldap_search_attribute_list, $evo_pv_ldap_search_max_result_set, &apos;slash&apos;)"/>
+				</arg-node-set>
+			</do-set-local-variable>
+			<do-set-local-variable name="evo_pv_check_query_result" scope="policy">
+				<arg-string>
+					<token-xpath expression="count($evo_pv_query_result)"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-if>
+				<arg-conditions>
+					<and>
+						<if-local-variable mode="nocase" name="evo_pv_check_query_result" op="not-equal">0</if-local-variable>
+					</and>
+				</arg-conditions>
+				<arg-actions>
+					<do-for-each>
+						<arg-node-set>
+							<token-local-variable name="evo_pv_query_result"/>
+						</arg-node-set>
+						<arg-actions>
+							<do-set-local-variable name="evo_pv_archProcTS" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/attr[@attr-name='degArchivingProcessStartTime']/value"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-if>
+								<arg-conditions>
+									<and>
+										<if-local-variable mode="nocase" name="evo_pv_archProcTS" op="equal"/>
+									</and>
+								</arg-conditions>
+								<arg-actions>
+									<do-set-local-variable name="evo_pv_deletionDebutants" scope="policy">
+										<arg-node-set>
+											<token-local-variable name="evo_pv_deletionDebutants"/>
+											<token-local-variable name="current-node"/>
+										</arg-node-set>
+									</do-set-local-variable>
+								</arg-actions>
+								<arg-actions>
+									<do-if>
+										<arg-conditions>
+											<and>
+												<if-local-variable mode="nocase" name="evo_pv_archProcTS" op="lt">$evo_pv_tenDaysBefore$</if-local-variable>
+											</and>
+										</arg-conditions>
+										<arg-actions>
+											<do-set-local-variable name="evo_pv_deletionSecondOffenders" scope="policy">
+												<arg-node-set>
+													<token-local-variable name="evo_pv_deletionSecondOffenders"/>
+													<token-local-variable name="current-node"/>
+												</arg-node-set>
+											</do-set-local-variable>
+										</arg-actions>
+										<arg-actions/>
+									</do-if>
+								</arg-actions>
+							</do-if>
+						</arg-actions>
+					</do-for-each>
+				</arg-actions>
+				<arg-actions/>
+			</do-if>
+		</actions>
+	</rule>
+	<rule>
+		<description>Trigger: Processing archiving debutants</description>
+		<comment xml:space="preserve">Revoke NRf Resources and degEntitlements on accounts deleted 365 days ago</comment>
+		<comment name="author" xml:space="preserve">T13699</comment>
+		<comment name="version" xml:space="preserve">0.2</comment>
+		<comment name="lastchanged" xml:space="preserve">09.2015</comment>
+		<conditions>
+			<and>
+				<if-operation mode="case" op="equal">trigger</if-operation>
+				<if-op-property mode="nocase" name="source" op="equal">IDM_Process_1_1_Delete_inactives_365</if-op-property>
+				<if-local-variable name="evo_pv_deletionDebutants" op="available"/>
+				<if-local-variable mode="nocase" name="evo_pv_deletionDebutants" op="not-equal"/>
+			</and>
+		</conditions>
+		<actions>
+			<do-for-each>
+				<arg-node-set>
+					<token-local-variable name="evo_pv_deletionDebutants"/>
+				</arg-node-set>
+				<arg-actions>
+					<do-set-local-variable name="evo_pv_User_DN" scope="policy">
+						<arg-string>
+							<token-xpath expression="$current-node/@src-dn"/>
+						</arg-string>
+					</do-set-local-variable>
+					<do-set-local-variable name="evo_pv_cn" scope="policy">
+						<arg-string>
+							<token-xpath expression="$current-node/attr[@attr-name='cn']/value"/>
+						</arg-string>
+					</do-set-local-variable>
+					<do-set-local-variable name="evo_pv_nrfAssignedResources" scope="policy">
+						<arg-node-set>
+							<token-xpath expression="$current-node/attr[@attr-name='nrfAssignedResources']/value"/>
+						</arg-node-set>
+					</do-set-local-variable>
+					<do-for-each>
+						<arg-node-set>
+							<token-local-variable name="evo_pv_nrfAssignedResources"/>
+						</arg-node-set>
+						<arg-actions>
+							<do-set-local-variable name="evo_pv_resourceDN" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/component[@name='volume']"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-set-local-variable name="evo_pv_resourcePath" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/component[@name='path']"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-set-local-variable name="evo_pv_resourceState" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/component[@name='nameSpace']"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-if>
+								<arg-conditions>
+									<and>
+										<if-local-variable mode="nocase" name="evo_pv_resourceState" op="equal">1</if-local-variable>
+									</and>
+								</arg-conditions>
+								<arg-actions>
+									<do-remove-resource id="~UAProvAdmin~" resource-id="$evo_pv_resourceDN$" time-out="300000" url="~UAProvURL~">
+										<arg-password>
+											<token-text xml:space="preserve">asdfasdfasdf</token-text>
+										</arg-password>
+										<arg-string name="description">
+											<token-text xml:space="preserve">User archived</token-text>
+										</arg-string>
+									</do-remove-resource>
+								</arg-actions>
+								<arg-actions/>
+							</do-if>
+						</arg-actions>
+					</do-for-each>
+					<do-set-local-variable name="evo_pv_degEntitlementRefs" scope="policy">
+						<arg-node-set>
+							<token-xpath expression="$current-node/attr[@attr-name='degEntitlementRef']/value"/>
+						</arg-node-set>
+					</do-set-local-variable>
+					<do-for-each>
+						<arg-node-set>
+							<token-local-variable name="evo_pv_degEntitlementRefs"/>
+						</arg-node-set>
+						<arg-actions>
+							<do-set-local-variable name="evo_pv_entitlementDN" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/component[@name='volume']"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-set-local-variable name="evo_pv_entitlementPath" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/component[@name='path']"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-set-local-variable name="evo_pv_entitlementState" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/component[@name='nameSpace']"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-if>
+								<arg-conditions>
+									<and>
+										<if-local-variable mode="nocase" name="evo_pv_resourceState" op="equal">1</if-local-variable>
+									</and>
+								</arg-conditions>
+								<arg-actions>
+									<do-remove-src-attr-value class-name="User" name="degEntitlementRef">
+										<arg-value type="structured">
+											<arg-component name="nameSpace">
+												<token-text xml:space="preserve">1</token-text>
+											</arg-component>
+											<arg-component name="volume">
+												<token-local-variable name="evo_pv_entitlementDN"/>
+											</arg-component>
+											<arg-component name="path">
+												<token-local-variable name="evo_pv_entitlementPath"/>
+											</arg-component>
+										</arg-value>
+									</do-remove-src-attr-value>
+									<do-add-src-attr-value class-name="User" name="degEntitlementRef">
+										<arg-value type="structured">
+											<arg-component name="nameSpace">
+												<token-text xml:space="preserve">0</token-text>
+											</arg-component>
+											<arg-component name="volume">
+												<token-local-variable name="pv_Entitlement-objectDN"/>
+											</arg-component>
+											<arg-component name="path">
+												<token-local-variable name="pv_Entitlement-Path"/>
+											</arg-component>
+										</arg-value>
+									</do-add-src-attr-value>
+								</arg-actions>
+								<arg-actions/>
+							</do-if>
+						</arg-actions>
+					</do-for-each>
+					<do-set-src-attr-value class-name="User" name="degArchivingProcessStartTime">
+						<arg-dn>
+							<token-local-variable name="evo_pv_User_DN"/>
+						</arg-dn>
+						<arg-value type="time">
+							<token-time format="yyyyMMddHHmmss" tz="GMT0"/>
+						</arg-value>
+					</do-set-src-attr-value>
+				</arg-actions>
+			</do-for-each>
+		</actions>
+	</rule>
+	<rule>
+		<description>Trigger: Processing second offenders</description>
+		<comment xml:space="preserve">Delet Accounts with degDeletedTimestamp more then 365 + 10 days ago on all found accounts set degInactive and degInactiveTimestamp</comment>
+		<comment name="author" xml:space="preserve">t13699</comment>
+		<comment name="version" xml:space="preserve">0.2</comment>
+		<comment name="lastchanged" xml:space="preserve">09.2015</comment>
+		<conditions>
+			<and>
+				<if-operation mode="case" op="equal">trigger</if-operation>
+				<if-op-property mode="nocase" name="source" op="equal">IDM_Process_1_1_Delete_inactives_365</if-op-property>
+				<if-local-variable name="evo_pv_deletionSecondOffenders" op="available"/>
+				<if-local-variable mode="nocase" name="evo_pv_deletionSecondOffenders" op="not-equal"/>
+			</and>
+		</conditions>
+		<actions>
+			<do-for-each>
+				<arg-node-set>
+					<token-local-variable name="evo_pv_deletionSecondOffenders"/>
+				</arg-node-set>
+				<arg-actions>
+					<do-set-local-variable name="evo_pv_User_DN" scope="policy">
+						<arg-string>
+							<token-xpath expression="$current-node/@src-dn"/>
+						</arg-string>
+					</do-set-local-variable>
+					<do-set-local-variable name="evo_pv_cn" scope="policy">
+						<arg-string>
+							<token-xpath expression="$current-node/attr[@attr-name='cn']/value"/>
+						</arg-string>
+					</do-set-local-variable>
+					<do-for-each>
+						<arg-node-set>
+							<token-src-attr class-name="User" name="Group Membership">
+								<arg-dn>
+									<token-local-variable name="evo_pv_User_DN"/>
+								</arg-dn>
+							</token-src-attr>
+						</arg-node-set>
+						<arg-actions>
+							<do-remove-src-attr-value class-name="User" name="Group Membership">
+								<arg-dn>
+									<token-local-variable name="evo_pv_User_DN"/>
+								</arg-dn>
+								<arg-value type="dn">
+									<token-local-variable name="current-node"/>
+								</arg-value>
+							</do-remove-src-attr-value>
+							<do-remove-src-attr-value class-name="User" name="Security Equals">
+								<arg-dn>
+									<token-local-variable name="evo_pv_User_DN"/>
+								</arg-dn>
+								<arg-value type="dn">
+									<token-local-variable name="current-node"/>
+								</arg-value>
+							</do-remove-src-attr-value>
+						</arg-actions>
+					</do-for-each>
+					<do-set-src-attr-value class-name="User" name="degInactive">
+						<arg-dn>
+							<token-local-variable name="evo_pv_User_DN"/>
+						</arg-dn>
+						<arg-value type="string">
+							<token-text xml:space="preserve">TRUE</token-text>
+						</arg-value>
+					</do-set-src-attr-value>
+				</arg-actions>
+			</do-for-each>
+		</actions>
+	</rule>
+	<rule>
+		<description>Handle degInactive change</description>
+		<comment xml:space="preserve">Version 1.2</comment>
+		<conditions>
+			<and>
+				<if-class-name mode="nocase" op="equal">User</if-class-name>
+				<if-op-attr name="degInactive" op="changing"/>
+			</and>
+			<and>
+				<if-class-name mode="nocase" op="equal">User</if-class-name>
+				<if-operation op="equal">sync</if-operation>
+			</and>
+			<and>
+				<if-operation mode="case" op="equal">trigger</if-operation>
+				<if-op-property mode="nocase" name="source" op="equal">LBJ_IDM_Process_1_1_Sync_Attribute_degInactive</if-op-property>
+			</and>
+		</conditions>
+		<actions>
+			<do-set-local-variable name="lv_degInactive" scope="policy">
+				<arg-string>
+					<token-attr name="degInactive"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-if>
+				<arg-conditions>
+					<and>
+						<if-local-variable mode="nocase" name="lv_degInactive" op="equal">True</if-local-variable>
+					</and>
+				</arg-conditions>
+				<arg-actions>
+					<do-set-src-attr-value name="degHRStatus">
+						<arg-value type="string">
+							<token-text xml:space="preserve">3</token-text>
+						</arg-value>
+					</do-set-src-attr-value>
+					<do-set-dest-attr-value name="degHRStatus">
+						<arg-value type="string">
+							<token-text xml:space="preserve">3</token-text>
+						</arg-value>
+					</do-set-dest-attr-value>
+					<do-set-src-attr-value disabled="true" name="degDeletedTimestamp">
+						<arg-value>
+							<token-xpath expression="itsonHelper:GetCurrentDate()"/>
+						</arg-value>
+					</do-set-src-attr-value>
+					<do-set-src-attr-value name="degInactiveTimestamp">
+						<arg-value type="string">
+							<token-xpath expression="itsonHelper:GetCurrentDate()"/>
+						</arg-value>
+					</do-set-src-attr-value>
+					<do-set-src-attr-value disabled="true" name="jobCode">
+						<arg-value type="string">
+							<token-text xml:space="preserve">move</token-text>
+						</arg-value>
+					</do-set-src-attr-value>
+					<do-set-op-property name="op_move">
+						<arg-string>
+							<token-text xml:space="preserve">true</token-text>
+						</arg-string>
+					</do-set-op-property>
+				</arg-actions>
+				<arg-actions/>
+			</do-if>
+		</actions>
+	</rule>
+	<rule>
+		<description>Trigger: IDM_Process_1_1_Delete_all_Association</description>
+		<conditions>
+			<and>
+				<if-operation mode="case" op="equal">trigger</if-operation>
+				<if-op-property mode="nocase" name="source" op="equal">IDM_Process_1_1_Delete_all_Association</if-op-property>
+			</and>
+		</conditions>
+		<actions>
+			<do-trace-message color="brpurple">
+				<arg-string>
+					<token-text xml:space="preserve">Trigger IDM_Process_1_1_Delete_all_Association</token-text>
+				</arg-string>
+			</do-trace-message>
+			<do-set-local-variable disabled="true" name="lv_ldap_filter" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">(&amp;(objectClass=User)(|(DirXML-Associations=*)(DirXML-PasswordSyncStatus=*)(groupMembership=*)(securityEquals=*)))</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_ldap_filter" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">(&amp;(objectClass=User)(DirXML-Associations=*))</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_ldap_server" scope="policy">
+				<arg-string>
+					<token-global-variable name="LdapServer"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable disabled="true" name="lv_ldap_port" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">636</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable disabled="true" name="lv_ldap_use_tls_or_ssl" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">true</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_ldap_port" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">389</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_ldap_use_tls_or_ssl" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">false</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-if>
+				<arg-conditions>
+					<and>
+						<if-local-variable mode="nocase" name="lv_ldap_use_tls_or_ssl" op="equal">true</if-local-variable>
+						<if-global-variable mode="regex" name="LdapTlsKeystore" op="equal">.+</if-global-variable>
+					</and>
+				</arg-conditions>
+				<arg-actions>
+					<do-set-local-variable name="LdapTlsKeystore" scope="policy">
+						<arg-string>
+							<token-global-variable name="LdapTlsKeystore"/>
+						</arg-string>
+					</do-set-local-variable>
+					<do-set-local-variable name="LdapTlsStorepass" scope="policy">
+						<arg-string>
+							<token-named-password name="LdapTlsStorepass"/>
+						</arg-string>
+					</do-set-local-variable>
+				</arg-actions>
+				<arg-actions/>
+			</do-if>
+			<do-set-local-variable name="lv_ldap_user" scope="policy">
+				<arg-string>
+					<token-global-variable name="LdapServerLogin"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_ldap_pwd" scope="policy">
+				<arg-string>
+					<token-named-password name="LdapNamedPassword"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_ldap_search_base" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">o=Inactives,c=DE</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_ldap_search_scope" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">sub</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable disabled="true" name="lv_ldap_search_attribute_list" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">cn,DirXML-Associations,DirXML-PasswordSyncStatus,groupMembership,securityEquals</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_ldap_search_attribute_list" scope="policy">
+				<arg-string>
+					<token-text xml:space="preserve">cn,DirXML-Associations,DirXML-PasswordSyncStatus</token-text>
+				</arg-string>
+			</do-set-local-variable>
+			<do-trace-message>
+				<arg-string>
+					<token-local-variable name="lv_ldap_filter"/>
+				</arg-string>
+			</do-trace-message>
+			<do-trace-message>
+				<arg-string>
+					<token-local-variable name="lv_ldap_server"/>
+				</arg-string>
+			</do-trace-message>
+			<do-trace-message>
+				<arg-string>
+					<token-local-variable name="lv_ldap_port"/>
+				</arg-string>
+			</do-trace-message>
+			<do-trace-message>
+				<arg-string>
+					<token-local-variable name="lv_ldap_use_tls_or_ssl"/>
+				</arg-string>
+			</do-trace-message>
+			<do-trace-message>
+				<arg-string>
+					<token-local-variable name="lv_ldap_user"/>
+				</arg-string>
+			</do-trace-message>
+			<do-trace-message>
+				<arg-string>
+					<token-local-variable name="lv_ldap_pwd"/>
+				</arg-string>
+			</do-trace-message>
+			<do-trace-message>
+				<arg-string>
+					<token-local-variable name="lv_ldap_search_base"/>
+				</arg-string>
+			</do-trace-message>
+			<do-trace-message>
+				<arg-string>
+					<token-local-variable name="lv_ldap_search_scope"/>
+				</arg-string>
+			</do-trace-message>
+			<do-trace-message>
+				<arg-string>
+					<token-local-variable name="lv_ldap_search_attribute_list"/>
+				</arg-string>
+			</do-trace-message>
+			<do-set-local-variable disabled="true" name="lv_query_result" scope="policy">
+				<arg-node-set>
+					<token-xpath expression="es:eDirldapSearch($lv_ldap_server, $lv_ldap_port, $lv_ldap_use_tls_or_ssl, $LdapTlsKeystore, $LdapTlsStorepass, $lv_ldap_user, $lv_ldap_pwd, $lv_ldap_search_base, $lv_ldap_search_scope, $lv_ldap_filter, $lv_ldap_search_attribute_list, ~LdapMaxResultSet~, 'slash')"/>
+				</arg-node-set>
+			</do-set-local-variable>
+			<do-set-local-variable disabled="true" name="lv_query_result" scope="policy">
+				<arg-node-set>
+					<token-xpath expression="es:eDirldapSearch($lv_ldap_server, $lv_ldap_port, $lv_ldap_use_tls_or_ssl,'','', $lv_ldap_user, $lv_ldap_pwd, $lv_ldap_search_base, $lv_ldap_search_scope, $lv_ldap_filter, $lv_ldap_search_attribute_list, ~LdapMaxResultSet~, 'slash')"/>
+				</arg-node-set>
+			</do-set-local-variable>
+			<do-set-local-variable disabled="true" name="lv_query_result" scope="policy">
+				<arg-node-set>
+					<token-xpath expression='es:ldapSearch("10.72.14.30",389,"false","","","CN=admin,O=SYSTEM,C=DE","wolkenbruch","o=inactives,c=de","sub","(&amp;(objectClass=User)(DirXML-Associations=*))","cn,sn",10)'/>
+				</arg-node-set>
+			</do-set-local-variable>
+			<do-set-local-variable disabled="true" name="lv_query_result" scope="policy">
+				<arg-node-set>
+					<token-xpath expression='es:ldapSearch("10.72.14.31",389,"false","","","CN=admin,O=SYSTEM,C=DE","wolkenbruch","o=inactives,c=de","sub","(&amp;(objectClass=User)(DirXML-Associations=*))","cn,sn",10)'/>
+				</arg-node-set>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_query_result" scope="policy">
+				<arg-node-set>
+					<token-xpath expression='es:ldapSearch("127.0.0.1",389,"false","","","CN=admin,O=SYSTEM,C=DE","wolkenbruch","o=inactives,c=de","sub","(&amp;(objectClass=User)(DirXML-Associations=*))","cn,sn",10)'/>
+				</arg-node-set>
+			</do-set-local-variable>
+			<do-set-local-variable name="lv_check_query_result" scope="policy">
+				<arg-string>
+					<token-xpath expression="count($lv_query_result)"/>
+				</arg-string>
+			</do-set-local-variable>
+			<do-if>
+				<arg-conditions>
+					<and>
+						<if-local-variable mode="nocase" name="lv_check_query_result" op="not-equal">0</if-local-variable>
+					</and>
+				</arg-conditions>
+				<arg-actions>
+					<do-for-each>
+						<arg-node-set>
+							<token-local-variable name="lv_query_result"/>
+						</arg-node-set>
+						<arg-actions>
+							<do-set-local-variable name="lv_User_DN" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/@src-dn"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-set-local-variable name="lv_User_CN" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/attr[@attr-name='cn']/value"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-set-local-variable name="lv_User_DirXML-Associations" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/attr[@attr-name='DirXML-Associations']/value"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-set-local-variable name="lv_User_DirXML-PasswordSyncStatus" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/attr[@attr-name='DirXML-PasswordSyncStatus']/value"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-set-local-variable disabled="true" name="lv_User_groupMembership" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/attr[@attr-name='groupMembership']/value"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-set-local-variable disabled="true" name="lv_User_securityEquals" scope="policy">
+								<arg-string>
+									<token-xpath expression="$current-node/attr[@attr-name='securityEquals']/value"/>
+								</arg-string>
+							</do-set-local-variable>
+							<do-if>
+								<arg-conditions>
+									<and>
+										<if-local-variable name="lv_User_DirXML-Associations" op="available"/>
+										<if-local-variable mode="nocase" name="lv_User_DirXML-Associations" op="not-equal"/>
+									</and>
+								</arg-conditions>
+								<arg-actions>
+									<do-clear-src-attr-value name="DirXML-Associations">
+										<arg-dn>
+											<token-local-variable name="lv_User_DN"/>
+										</arg-dn>
+									</do-clear-src-attr-value>
+								</arg-actions>
+								<arg-actions/>
+							</do-if>
+							<do-if>
+								<arg-conditions>
+									<and>
+										<if-local-variable name="lv_User_DirXML-PasswordSyncStatus" op="available"/>
+										<if-local-variable mode="nocase" name="lv_User_DirXML-PasswordSyncStatus" op="not-equal"/>
+									</and>
+								</arg-conditions>
+								<arg-actions>
+									<do-clear-src-attr-value name="DirXML-PasswordSyncStatus">
+										<arg-dn>
+											<token-local-variable name="lv_User_DN"/>
+										</arg-dn>
+									</do-clear-src-attr-value>
+								</arg-actions>
+								<arg-actions/>
+							</do-if>
+							<do-if disabled="true">
+								<arg-conditions>
+									<and>
+										<if-local-variable name="lv_User_groupMembership" op="available"/>
+										<if-local-variable mode="nocase" name="lv_User_groupMembership" op="not-equal"/>
+									</and>
+								</arg-conditions>
+								<arg-actions>
+									<do-clear-src-attr-value disabled="true" name="Group Membership">
+										<arg-dn>
+											<token-local-variable name="lv_User_DN"/>
+										</arg-dn>
+									</do-clear-src-attr-value>
+									<do-clear-dest-attr-value direct="true" name="Group Membership">
+										<arg-dn>
+											<token-local-variable name="lv_User_DN"/>
+										</arg-dn>
+									</do-clear-dest-attr-value>
+								</arg-actions>
+								<arg-actions/>
+							</do-if>
+							<do-if disabled="true">
+								<arg-conditions>
+									<and>
+										<if-local-variable name="lv_User_securityEquals" op="available"/>
+										<if-local-variable mode="nocase" name="lv_User_securityEquals" op="not-equal"/>
+									</and>
+								</arg-conditions>
+								<arg-actions>
+									<do-clear-src-attr-value disabled="true" name="Security Equals">
+										<arg-dn>
+											<token-local-variable name="lv_User_DN"/>
+										</arg-dn>
+									</do-clear-src-attr-value>
+									<do-clear-dest-attr-value direct="true" name="Security Equals">
+										<arg-dn>
+											<token-local-variable name="lv_User_DN"/>
+										</arg-dn>
+									</do-clear-dest-attr-value>
+								</arg-actions>
+								<arg-actions/>
+							</do-if>
+						</arg-actions>
+					</do-for-each>
+				</arg-actions>
+				<arg-actions/>
+			</do-if>
+		</actions>
+	</rule>
+</policy>
+}}}

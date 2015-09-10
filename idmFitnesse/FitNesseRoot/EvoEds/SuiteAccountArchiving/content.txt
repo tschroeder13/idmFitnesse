@@ -1,5 +1,5 @@
-!1 Test suite für den Accountarchivierungs-Prozess
-!****> Globale Variablen
+!*> Globale Variablen
+
 !define meta {idmtest}
 !define meta_host {149.216.14.183}
 !define meta_port {636}
@@ -12,14 +12,20 @@ ${debutantTS}
 !define second_offenders {${= !weekDaysFromToday (yyyyMMdd) -10 =}}
 ${second_offenders}
 !define test_user {cn=T99991}
-!define user_container {ou=intranet,o=base,c=DE}
+!define test_group {cn=t13699tstGrp,${user_container}}
+!define user_container {ou=t13699tst,ou=intranet,o=base,c=DE}
+!define dn {${test_user},${user_container}}
 !define archiv_container {o=Inactives,c=DE}
-!define attributes {!{cn: ${test_user}, sn: Schroeder_Test,  givenName: Tobias_Test, degDeletedTimestamp: ${debutantTS}, co: Germany, company: Evonik Business Services (Legal siehe 810004), costCenter: 12345, degAccountType: primary, degAdsOfficeString: - // Marl // - / -, degAutoGroupMembershipStatus: FALSE, degBusinessArea: Other, degBusinessAreaID: 6, degChargeIDM: FALSE, degChargeSEC: FALSE, degChargeWAN: FALSE, degCompanyCode: 583, degCompanyNumber: 800045, degCountryCode: 11, degCountryISOcodeCompany: DE, degCountryISOcodeLocation: DE, degDeleted: 1, degExternalEmployee: 0, degHRStatus: 3, degImportSecret: 819363, degIntPhoneBook: FALSE, degITCostcenter: 12345, degKontArtID: KST, degLocationCode: 330, degPwdSyncDirection: 3, degRegion: Europe, degServiceLDAP: TRUE, degServiceRASrescueMode: FALSE, degTochterID: 1, degWANCode: 156, displayName: Tobias_Test Schroeder_Test, fullName: Tobias_Test Schroeder_Test, l: Marl, postalCode: 45772 }}
+!define attributes {!{cn: ${test_user}, sn: Schroeder_Test,  givenName: Tobias_Test, co: Germany, company: Evonik Business Services (Legal siehe 810004), costCenter: 12345, degAccountType: primary, degAdsOfficeString: - // Marl // - / -, degAutoGroupMembershipStatus: FALSE, degBusinessArea: Other, degBusinessAreaID: 6, degChargeIDM: FALSE, degChargeSEC: FALSE, degChargeWAN: FALSE, degCompanyCode: 583, degCompanyNumber: 800045, degCountryCode: 11, degCountryISOcodeCompany: DE, degCountryISOcodeLocation: DE, degDeleted: 1, degExternalEmployee: 0, degHRStatus: 3, degImportSecret: 819363, degIntPhoneBook: FALSE, degITCostcenter: 12345, degKontArtID: KST, degLocationCode: 330, degPwdSyncDirection: 3, degRegion: Europe, degServiceLDAP: TRUE, degServiceRASrescueMode: FALSE, degTochterID: 1, degWANCode: 156, displayName: Tobias_Test Schroeder_Test, fullName: Tobias_Test Schroeder_Test, l: Marl, postalCode: 45772 }}
 
-!define objectclasses {degContact, degUser, DirXML-EntitlementRecipient, DirXML-PasswordSyncStatusUser, inetOrgPerson, ndsLoginProperties, organizationalPerson, Person, srvprvUserAux, Top}
+!define objectclasses {degContact, degUser, DirXML-EntitlementRecipient, DirXML-PasswordSyncStatusUser, inetOrgPerson, ndsLoginProperties, organizationalPerson, Person, srvprvUserAux, Top, nrfIdentity}
 !define meta_trg_job {cn=IDM_Process_1_1_Delete_inactives_365,cn=BusinessLogic0,cn=DriverSet1,ou=IDM,o=SYSTEM,c=DE}
+*!
 
-***!
+!contents -R2 -g -p -f -h
+
+!1 Test suite für den Accountarchivierungs-Prozess
+
 !img-r -m 10 files/images/IDM_P_1.1_deactive_inactive_1_4.png
 Der Archivierungsprozess bezieht sich Konten in der EDS und den angeschlossenen AD Domänen. In der EDS sind die Teilbäume "o=base,c=DE" und "o=Internet,c=DE" zu betrachten. Ist ein Account in der EDS ein Jahr im degHRStatus = 3, also inaktiv, soll er in den Container "o=Inactives,c=DE" verschoben werden. Die verstrichene Zeit wird anhand des degDeletedTimestamp berechnet, der als "Generalized String" im Schema definiert ist. Während der Archivierung ist sicherzustellen, dass ausgelöste asynchrone Prozesse in anderen Treibern abgeschlossen werden können, bevor das Konto endgültig archiviert wird. 
 Um nun die Konsistenz zu gewährleisten, wird der Archivierungsprozess zeitlich in zwei Schritte unterteilt. Im ersten Schritte werden die asynchronen Przoesse ausgelöst und eine Zeitstempel gesetzt. Dieser wird im zweiten Schritt verwendet um diejenigen Konten zu identifizieren, für die eben diese Pause verstrichen ist und in der die nebenläufigen Prozesse beendet sind.    
@@ -27,7 +33,7 @@ Um nun die Konsistenz zu gewährleisten, wird der Archivierungsprozess zeitlich 
 !2 Der Prozess
 Zunächst wird der gesamte Prozess zeitgesteuert über einen Job gestartet. 
 Auf diesen Trigger hin werden beide Teilbäume mit einer LDAP-Query (ECMAScript) durchsucht.
-{{{(&(objectClass=degUser)(degHRStatus=3)()degDeletedTimestamp<=$now-365)}}}
+{{{(&(objectClass=degUser)(degHRStatus=3)(degDeletedTimestamp<=$now-365))}}}
 Die Suchergebnisse müssen die benötigten Attribute gleich mitliefern, die da wären
  1 cn
  2 degHRStatus
@@ -306,6 +312,59 @@ Den vorbearbeiteten Accounts werden
   a. detektieren des <do-move> mit DestDN in Subtree ou=Archiv,ou=IDM,dc...
   b. vor dem Event den SourceDN vom Member-Attribut aller Gruppen im AD löschen.
   c. Move fortsetzen 
+!*> Beispiel
+{{{<do-trace-message>
+	<arg-string>
+		<token-text xml:space="preserve">Archiving user </token-text>
+		<token-src-name/>
+	</arg-string>
+</do-trace-message>
+<do-if>
+	<arg-conditions>
+		<and>
+			<if-dest-dn op="in-container">~evo_gcv_ds_ad_archive_container_dn~</if-dest-dn>
+		</and>
+	</arg-conditions>
+	<arg-actions>
+		<do-set-local-variable name="evo_pv_groups" scope="policy">
+			<arg-node-set>
+				<token-query class-name="group">
+					<arg-match-attr name="member">
+						<arg-value type="string">
+							<token-src-dn/>
+						</arg-value>
+					</arg-match-attr>
+				</token-query>
+			</arg-node-set>
+		</do-set-local-variable>
+		<do-set-local-variable name="evo_pv_Group_DN" scope="policy">
+			<arg-string>
+				<token-xpath expression="$current-node/@src-dn"/>
+			</arg-string>
+		</do-set-local-variable>
+		<do-for-each>
+			<arg-node-set>
+				<token-local-variable name="evo_pv_groups"/>
+			</arg-node-set>
+			<arg-actions>
+				<do-remove-dest-attr-value class-name="group" direct="true" name="member">
+					<arg-dn>
+						<token-local-variable name="evo_pv_Group_DN"/>
+					</arg-dn>
+					<arg-value type="string">
+						<token-src-dn convert="true"/>
+					</arg-value>
+				</do-remove-dest-attr-value>
+			</arg-actions>
+		</do-for-each>
+		<do-move-dest-object class-name="User" direct="true">
+			<arg-dn>
+				<token-dest-dn convert="true"/>
+			</arg-dn>
+		</do-move-dest-object>
+	</arg-actions>
+	<arg-actions/>
+</do-if>
+}}}
+*!
      
-  
-!contents -R2 -g -p -f -h

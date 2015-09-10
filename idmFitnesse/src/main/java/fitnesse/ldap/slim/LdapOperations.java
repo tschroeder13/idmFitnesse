@@ -41,11 +41,19 @@ public class LdapOperations {
 		connection = LdapConnectionFactory.getLdapConnection(alias);
 	}
 
-	public boolean createObjectWithAttributesAndObjectclasses(String fqdn, Map<String, String> attributes,
+	public boolean createObjectWithAttributesAndObjectclasses(String fqdn, Map<String, Object> attributes,
 			String... objectClass) throws SlimException {
 		List<Attribute> attrs = new ArrayList<Attribute>();
-		for (Map.Entry<String, String> entry : attributes.entrySet()) {
-			attrs.add(new Attribute(entry.getKey(), entry.getValue()));
+		for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+			if ( entry.getValue() instanceof String) {
+				String value = (String) entry.getValue();
+				attrs.add(new Attribute(entry.getKey(), value));
+			}
+			if ( entry.getValue() instanceof List<?>) {
+				@SuppressWarnings("unchecked")
+				List<String> value = ((List<String>) entry.getValue());
+				attrs.add(new Attribute(entry.getKey(), value));
+			}
 		}
 		for (String clazz : objectClass) {
 			attrs.add(new Attribute("objectClass", clazz));
@@ -55,7 +63,8 @@ public class LdapOperations {
 			boolean success = connection.add(new AddRequest(fqdn, arr)).getResultCode().equals(ResultCode.SUCCESS);
 			return success;
 		} catch (LDAPException e) {
-			throw new SlimException("message:<<Object \""+fqdn+"\" could not be created for following reason \n"+e.getDiagnosticMessage()+"\n>>",true);
+			e.printStackTrace();
+			throw new SlimException("message:<<Object \""+fqdn+"\" could not be created for following reason: \n"+e.getDiagnosticMessage()+"\n>>",true);
 		}
 	}
 
@@ -87,11 +96,21 @@ public class LdapOperations {
 		return false;
 	}
 
-	public boolean addAttributeWithValueToObject(String attrName, String attrValue, String fqdn) throws SlimException {
+	public boolean addAttributeWithValueToObject(String attrName, Object attrValue, String fqdn) throws SlimException {
 		try {
-			boolean res = connection
-					.modify(new ModifyRequest(fqdn, new Modification(ModificationType.ADD, attrName, attrValue)))
-					.getResultCode().equals(ResultCode.SUCCESS);
+			boolean res = false;
+			if (attrValue instanceof String) {
+				String singleValue = (String) attrValue;
+				res  = connection
+						.modify(new ModifyRequest(fqdn, new Modification(ModificationType.ADD, attrName, singleValue)))
+						.getResultCode().equals(ResultCode.SUCCESS);
+			}
+			if (attrValue instanceof List<?>) {
+				List<String> multiValue = (List<String>) attrValue;
+				res = connection
+						.modify(new ModifyRequest(fqdn, new Modification(ModificationType.ADD, attrName, multiValue.toArray(new String[multiValue.size()]))))
+						.getResultCode().equals(ResultCode.SUCCESS);
+			}
 			return res;
 		} catch (LDAPException e) {
 			throw new SlimException("message:<<Can not add attribute \"" + attrName + "\" with value \"" + attrValue
@@ -99,15 +118,26 @@ public class LdapOperations {
 		}
 	}
 
-	public boolean addAttributeValueMapToObject(Map<String, String> attrMap, String fqdn) throws SlimException {
+	public boolean addAttributeValueMapToObject(Map<String, Object> attrMap, String fqdn) throws SlimException {
 		SearchResult sr = null;
 		boolean result = false;
 		try {
-			for (java.util.Map.Entry<String, String> entry : attrMap.entrySet()) {
-				result = connection
-						.modify(new ModifyRequest(fqdn,
-								new Modification(ModificationType.ADD, entry.getKey(), entry.getValue())))
-						.getResultCode().equals(ResultCode.SUCCESS);
+			for (java.util.Map.Entry<String, Object> entry : attrMap.entrySet()) {
+				Object value = entry.getValue();
+				if (value instanceof String) {
+					String singleValue = (String) value;
+					result = connection
+							.modify(new ModifyRequest(fqdn,
+									new Modification(ModificationType.ADD, entry.getKey(), singleValue)))
+							.getResultCode().equals(ResultCode.SUCCESS);
+				}
+				if (value instanceof List<?>) {
+					List<String> multiValue = (List<String>) value;
+					result = connection
+							.modify(new ModifyRequest(fqdn,
+									new Modification(ModificationType.ADD, entry.getKey(), multiValue.toArray(new String[multiValue.size()]))))
+							.getResultCode().equals(ResultCode.SUCCESS);
+				}
 			}
 		} catch (LDAPException e) {
 			throw new SlimException("message:<<Could not add attributes to object \"" + fqdn + "\" for the following reason:\n"+e.getDiagnosticMessage()+"\n>>",true);
@@ -115,14 +145,39 @@ public class LdapOperations {
 		return result;
 	}
 
-	public boolean replaceAttributesOldValueWithNewValueOnObject(String attrName, String oldValue, String newValue,
-			String fqdn) throws SlimException, LDAPException {
-		SearchResult sr = connection.search(new SearchRequest(fqdn, SearchScope.BASE, "objectClass=*", attrName));
-		Entry entry = (Entry) sr.getSearchEntry(fqdn);
-		String values[] = entry.getAttribute(attrName).getValues();
-		List<String> list = Arrays.asList(values);
-		list.set(list.indexOf(oldValue), newValue);
+	public boolean setAttributeValueOnObject(String attrName, Object value, String fqdn) throws SlimException {
+		boolean res = false;
 		try {
+			if (value instanceof String) {
+				String singleValue = (String) value;
+				res = connection
+						.modify(new ModifyRequest(fqdn,
+								new Modification(ModificationType.REPLACE, attrName, singleValue)))
+						.getResultCode().equals(ResultCode.SUCCESS);
+			}
+			if (value instanceof List<?>) {
+				List<String> multiValue = (List<String>) value;
+				res = connection
+						.modify(new ModifyRequest(fqdn,
+								new Modification(ModificationType.REPLACE, attrName, multiValue.toArray(new String[multiValue.size()]))))
+						.getResultCode().equals(ResultCode.SUCCESS);
+			}
+			
+			return res;
+		} catch (LDAPException e) {
+			throw new SlimException("message:<<Cannot set value \"" + value + "\" on object \""
+					+ fqdn + "\" for the following reason. \n"+e.getDiagnosticMessage()+"\n>>",true);
+		}
+	}
+	
+	public boolean replaceAttributesOldValueWithNewValueOnObject(String attrName, String oldValue, String newValue,
+			String fqdn) throws SlimException {
+		try {
+			SearchResult sr = connection.search(new SearchRequest(fqdn, SearchScope.BASE, "objectClass=*", attrName));
+			Entry entry = (Entry) sr.getSearchEntry(fqdn);
+			String values[] = entry.getAttribute(attrName).getValues();
+			List<String> list = Arrays.asList(values);
+			list.set(list.indexOf(oldValue), newValue);
 			return connection
 					.modify(new ModifyRequest(fqdn,
 							new Modification(ModificationType.REPLACE, attrName, (String[]) list.toArray())))
