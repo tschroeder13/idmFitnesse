@@ -1,9 +1,30 @@
-!*******> hidden setup
+!*******> setup
+!3 Testsystem
 !define TEST_SYSTEM {slim}
 !define REMOTE_DEBUG_COMMAND {java -Xdebug 
                                    -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8001 
                                    -cp %p %m}
+
 !pomFile pom.xml
+
+!3 Meta Directory Server
+!define meta {idmtest}
+!define meta_host {149.216.14.183}
+!define meta_port {636}
+!define meta_ssl {true}
+!define meta_adm_user {cn=AT0320,ou=Special,ou=Applications,o=base,c=DE}
+!define meta_adm_pwd {ENC(yJoorVyvjH_QoCQsfeXmLQ)}
+
+!3 AD Root Server
+!define ad_root_host {149.216.19.115}
+!define ad_root_name {ds1749.root.dom}
+!define ad_eu_dn {DC=eu,DC=root,DC=dom}
+!define ad_eu_dn {DC=americas,DC=root,DC=dom}
+!define ad_port {3268}
+!define ad_ssl {false}
+!define ad_adm_usr {DEGUSSA\AT0320}
+!define ad_adm_pwd {ENC(yJoorVyvjH_QoCQsfeXmLQ)}
+
 
 
 ****!
