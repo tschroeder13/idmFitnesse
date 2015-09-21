@@ -35,6 +35,56 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.4</version>
 		</dependency>
+		<dependency>
+			<groupId>jaxb</groupId>
+			<artifactId>activation</artifactId>
+			<version>1.0.2</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-httpclient</groupId>
+			<artifactId>commons-httpclient</artifactId>
+			<version>3.1</version>
+		</dependency>
+		<dependency>
+    <groupId>log4j</groupId>
+    <artifactId>log4j</artifactId>
+    <version>1.2.17</version>
+</dependency>
+		<dependency>
+			<groupId>xfire</groupId>
+			<artifactId>saaj-api</artifactId>
+			<version>1.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mod4j.org.apache.commons</groupId>
+			<artifactId>logging</artifactId>
+			<version>1.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>nl.hsac</groupId>
+			<artifactId>hsac-fitnesse-fixtures</artifactId>
+			<version>2.1.1</version>
+		</dependency>
+		<dependency>
+    <groupId>org.apache.geronimo</groupId>
+    <artifactId>geronimo-mail</artifactId>
+    <version>1.0</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.directory.studio</groupId>
+    <artifactId>org.xpp3.xpp3</artifactId>
+    <version>1.1.4.c</version>
+</dependency>
+		<dependency>
+			<groupId>nl.hsac</groupId>
+			<artifactId>hsac-fitnesse-plugin</artifactId>
+			<version>1.11.1</version>
+		</dependency>
+		<dependency>
+    <groupId>com.sixdimensions.commons.osgi.wrapper</groupId>
+    <artifactId>jaxrpc-api</artifactId>
+    <version>1.1</version>
+</dependency>
 	</dependencies>
 	<profiles>
 		<profile>
@@ -72,16 +122,6 @@
 					<artifactId>maven-classpath-plugin</artifactId>
 					<version>1.9</version>
 					<scope>runtime</scope>
-				</dependency>
-				<dependency>
-					<groupId>nl.hsac</groupId>
-					<artifactId>hsac-fitnesse-fixtures</artifactId>
-					<version>2.1.1</version>
-				</dependency>
-				<dependency>
-					<groupId>nl.hsac</groupId>
-					<artifactId>hsac-fitnesse-plugin</artifactId>
-					<version>1.11.1</version>
 				</dependency>
 			</dependencies>
 		</profile>
