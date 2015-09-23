@@ -5,15 +5,20 @@ import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.xml.rpc.Call;
 import javax.xml.rpc.ServiceException;
-
-import org.apache.axis.client.Call;
-import org.apache.axis.client.Stub;
+import javax.xml.rpc.Stub;
 
 import com.novell.www.resource.service.IRemoteResource;
 import com.novell.www.resource.service.ResourceServiceLocator;
 
+import fitnesse.crypto.dbfit.util.crypto.CryptoFactories;
+import fitnesse.crypto.dbfit.util.crypto.CryptoService;
+
 public class NrfResourceServiceFactory {
+	
+	private static CryptoService cs= CryptoFactories.getCryptoServiceFactory()
+			.getCryptoService(CryptoFactories.getCryptoKeyStoreFactory().newInstance());
 
 	protected static Map<String, NrfResourceServiceDetail> resourceServices = new ConcurrentHashMap<>();
 	
@@ -26,13 +31,13 @@ public class NrfResourceServiceFactory {
 		try {
 			service =locater.getIRemoteResourcePort(new URL(serviceUrl));
 			((Stub)service)._setProperty(Call.USERNAME_PROPERTY, resourceAdminDn);
-			((Stub)service)._setProperty(Call.PASSWORD_PROPERTY, resourceAdminPwd);
+			((Stub)service)._setProperty(Call.PASSWORD_PROPERTY, cs.decrypt(resourceAdminPwd.substring(4,resourceAdminPwd.length()-1)));
 			
 		} catch (MalformedURLException | ServiceException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		resourceServices.put(alias, new NrfResourceServiceDetail(resourceAdminPwd, resourceAdminPwd, serviceUrl, service));
+		resourceServices.put(alias, new NrfResourceServiceDetail(cs.decrypt(resourceAdminPwd.substring(4,resourceAdminPwd.length()-1)), resourceAdminPwd, serviceUrl, service));
 		
 		return true;
 	}

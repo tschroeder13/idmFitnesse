@@ -1,9 +1,6 @@
 package fitnesse.ws.services;
 
-import org.sonatype.aether.repository.RemoteRepository;
-
 import com.novell.www.resource.service.IRemoteResource;
-import com.novell.www.resource.service.ResourceService;
 
 public class NrfResourceServiceDetail {
 	public String serviceAccountDn;
