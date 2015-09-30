@@ -9,6 +9,8 @@ import javax.xml.rpc.Call;
 import javax.xml.rpc.ServiceException;
 import javax.xml.rpc.Stub;
 
+import org.apache.axis.AxisProperties;
+
 import com.novell.www.resource.service.IRemoteResource;
 import com.novell.www.resource.service.ResourceServiceLocator;
 
@@ -28,6 +30,7 @@ public class NrfResourceServiceFactory {
 			String resourceAdminPwd) {
 		ResourceServiceLocator locater = new ResourceServiceLocator();
 		IRemoteResource service = null;
+		AxisProperties.setProperty("axis.socketSecureFactory","org.apache.axis.components.net.SunFakeTrustSocketFactory");
 		try {
 			service =locater.getIRemoteResourcePort(new URL(serviceUrl));
 			((Stub)service)._setProperty(Call.USERNAME_PROPERTY, resourceAdminDn);
@@ -37,13 +40,14 @@ public class NrfResourceServiceFactory {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		resourceServices.put(alias, new NrfResourceServiceDetail(cs.decrypt(resourceAdminPwd.substring(4,resourceAdminPwd.length()-1)), resourceAdminPwd, serviceUrl, service));
+		resourceServices.put(alias, new NrfResourceServiceDetail(resourceAdminDn, cs.decrypt(resourceAdminPwd.substring(4,resourceAdminPwd.length()-1)), serviceUrl, service));
 		
 		return true;
 	}
 
 	public static IRemoteResource getService(String alias) {
-		// TODO Auto-generated method stub
-		return resourceServices.get(alias).resourceService;
+		NrfResourceServiceDetail detail = resourceServices.get(alias);
+		if(null==detail) return null;
+		return detail.resourceService;
 	}
 }

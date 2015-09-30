@@ -9,11 +9,11 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 	</properties>
 	<dependencies>
-		<!-- <dependency> -->
-		<!-- <groupId>org.apache.cxf</groupId> -->
-		<!-- <artifactId>apache-cxf</artifactId> -->
-		<!-- <version>3.1.2</version> -->
-		<!-- </dependency> -->
+		<dependency>
+			<groupId>org.apache.axis</groupId>
+			<artifactId>axis</artifactId>
+			<version>1.4</version>
+		</dependency>
 		<dependency>
 			<groupId>org.fitnesse</groupId>
 			<artifactId>fitnesse</artifactId>
@@ -69,6 +69,12 @@
 			<groupId>nl.hsac</groupId>
 			<artifactId>hsac-fitnesse-fixtures</artifactId>
 			<version>2.1.1</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>guava</artifactId>
+					<groupId>com.google.guava</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.geronimo</groupId>
@@ -90,51 +96,95 @@
 			<artifactId>jaxrpc-api</artifactId>
 			<version>1.1</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.axis</groupId>
+			<artifactId>axis-jaxrpc</artifactId>
+			<version>1.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.axis</groupId>
+			<artifactId>axis-saaj</artifactId>
+			<version>1.4</version>
+		</dependency>
+		<dependency>
+			<groupId>wsdl4j</groupId>
+			<artifactId>wsdl4j</artifactId>
+			<version>1.6.3</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-discovery</groupId>
+			<artifactId>commons-discovery</artifactId>
+			<version>20040218.194635</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.cxf</groupId>
+			<artifactId>cxf-rt-frontend-jaxws</artifactId>
+			<version>2.1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.cxf</groupId>
+			<artifactId>cxf-rt-transports-http</artifactId>
+			<version>2.1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.5.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>log4j-over-slf4j</artifactId>
+			<version>1.7.12</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.8.3</version>
+		</dependency>
 	</dependencies>
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>uk.co.javahelp.fitnesse</groupId>
-				<artifactId>fitnesse-launcher-maven-plugin</artifactId>
-				<version>1.4.2</version>
-				<configuration>
-					<port>8000</port>
-					<!-- <workingDir>${project.build.directory}/fitnesse</workingDir> -->
-					<workingDir>${project.baseUri}</workingDir>
-					<root>FitNesseRoot</root>
-					<testResourceDirectory>src/test/fitnesse</testResourceDirectory>
-					<reportsDir>${workingDir}/reports</reportsDir>
-					<resultsDir>${workingDir}/results</resultsDir>
-					<summaryFile>${workingDir}/results/failsafe-summary.xml</summaryFile>
-					<createSymLink>true</createSymLink>
-					<excludeOptionalDependencies>true</excludeOptionalDependencies> <!-- Deprecated -->
-					<deletePluginsProperties>false</deletePluginsProperties> <!-- Note the 's' in "plugins" -->
-					<alwaysUnpackFitnesse>false</alwaysUnpackFitnesse>
-					<failIfNoTests>false</failIfNoTests>
-					<executions>
-						<execution>
-							<goals>
-								<goal>set-up</goal>
-								<goal>wiki</goal>
-								<goal>tear-down</goal>
-							</goals>
-						</execution>
-					</executions>
-				</configuration>
-			</plugin>
-			<plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
-        <executions>
-          <execution>
-            <id>default-jar</id>
-            <phase>package</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-		</plugins>
-	</build>
+	<profiles>
+		<profile>
+			<id>fitnesse</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.6</version>
+						<executions>
+							<execution>
+								<id>start-fitnesse</id>
+								<phase>test</phase>
+								<configuration>
+									<target>
+										<echo taskname="fitnesse" message="Starting FitNesse..." />
+										<java classname="fitnesseMain.FitNesseMain" classpathref="maven.runtime.classpath"
+											fork="true">
+											<arg line="-p 8000" />
+											<arg line="-d ." />
+										</java>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+			<dependencies>
+				<dependency>
+					<groupId>org.fitnesse.plugins</groupId>
+					<artifactId>maven-classpath-plugin</artifactId>
+					<version>1.9</version>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
 </project>
