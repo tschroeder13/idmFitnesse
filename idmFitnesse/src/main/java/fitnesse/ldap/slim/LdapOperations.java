@@ -2,11 +2,13 @@ package fitnesse.ldap.slim;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import com.unboundid.ldap.protocol.BindRequestProtocolOp;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
+
 import com.unboundid.ldap.sdk.AddRequest;
 import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.BindRequest;
@@ -26,6 +28,7 @@ import com.unboundid.ldap.sdk.SearchResult;
 import com.unboundid.ldap.sdk.SearchResultEntry;
 import com.unboundid.ldap.sdk.SearchScope;
 
+import fitnesse.StringPreparator;
 import fitnesse.ldap.services.LdapConnectionFactory;
 import fitnesse.slim.SlimException;
 import fitnesse.slim.StopTestSlimException;
@@ -100,7 +103,7 @@ public class LdapOperations {
 		try {
 			boolean res = false;
 			if (attrValue instanceof String) {
-				String singleValue = (String) attrValue;
+				String singleValue = StringPreparator.prepareString((String) attrValue);
 				res  = connection
 						.modify(new ModifyRequest(fqdn, new Modification(ModificationType.ADD, attrName, singleValue)))
 						.getResultCode().equals(ResultCode.SUCCESS);
@@ -228,12 +231,13 @@ public class LdapOperations {
 
 	public boolean attributeContainsValueForObject(String attrName, String containingValue, String fqdn)
 			throws SlimException {
+		String value = StringPreparator.prepareString(containingValue);
 		try {
 			boolean res = (connection.search(fqdn,SearchScope.BASE,
-					Filter.createEqualityFilter(attrName, containingValue)).getEntryCount() !=0 );
+					Filter.createEqualityFilter(attrName, value)).getEntryCount() !=0 );
 			return res;
 		} catch (LDAPException e) {
-			throw new SlimException("message:<<The attribute \"" + "\" does not contain the value \"" + containingValue
+			throw new SlimException("message:<<The attribute \"" + "\" does not contain the value \"" + value
 					+ " on object \"" + fqdn + "\" \n"+e.getDiagnosticMessage()+"\n>>",true);
 		}
 	}
@@ -315,5 +319,4 @@ public class LdapOperations {
 					"Could not move \"" + old_fqdn + "\" to \n" + new_superior + "\" for the following reason: \n"+e.getDiagnosticMessage()+"\n>>",true);
 		}
 	}
-
 }

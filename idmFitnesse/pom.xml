@@ -10,6 +10,11 @@
 	</properties>
 	<dependencies>
 		<dependency>
+			<groupId>org.apache.axis</groupId>
+			<artifactId>axis</artifactId>
+			<version>1.4</version>
+		</dependency>
+		<dependency>
 			<groupId>org.fitnesse</groupId>
 			<artifactId>fitnesse</artifactId>
 			<version>20150814</version>
@@ -35,6 +40,112 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.4</version>
 		</dependency>
+		<dependency>
+			<groupId>jaxb</groupId>
+			<artifactId>activation</artifactId>
+			<version>1.0.2</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-httpclient</groupId>
+			<artifactId>commons-httpclient</artifactId>
+			<version>3.1</version>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
+		<dependency>
+			<groupId>xfire</groupId>
+			<artifactId>saaj-api</artifactId>
+			<version>1.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mod4j.org.apache.commons</groupId>
+			<artifactId>logging</artifactId>
+			<version>1.0.4</version>
+		</dependency>
+		<dependency>
+			<groupId>nl.hsac</groupId>
+			<artifactId>hsac-fitnesse-fixtures</artifactId>
+			<version>2.1.1</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>guava</artifactId>
+					<groupId>com.google.guava</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.geronimo</groupId>
+			<artifactId>geronimo-mail</artifactId>
+			<version>1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.directory.studio</groupId>
+			<artifactId>org.xpp3.xpp3</artifactId>
+			<version>1.1.4.c</version>
+		</dependency>
+		<dependency>
+			<groupId>nl.hsac</groupId>
+			<artifactId>hsac-fitnesse-plugin</artifactId>
+			<version>1.11.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sixdimensions.commons.osgi.wrapper</groupId>
+			<artifactId>jaxrpc-api</artifactId>
+			<version>1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.axis</groupId>
+			<artifactId>axis-jaxrpc</artifactId>
+			<version>1.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.axis</groupId>
+			<artifactId>axis-saaj</artifactId>
+			<version>1.4</version>
+		</dependency>
+		<dependency>
+			<groupId>wsdl4j</groupId>
+			<artifactId>wsdl4j</artifactId>
+			<version>1.6.3</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-discovery</groupId>
+			<artifactId>commons-discovery</artifactId>
+			<version>20040218.194635</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.cxf</groupId>
+			<artifactId>cxf-rt-frontend-jaxws</artifactId>
+			<version>2.1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.cxf</groupId>
+			<artifactId>cxf-rt-transports-http</artifactId>
+			<version>2.1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.5.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>log4j-over-slf4j</artifactId>
+			<version>1.7.12</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.8.3</version>
+		</dependency>
 	</dependencies>
 	<profiles>
 		<profile>
@@ -49,14 +160,14 @@
 								<id>start-fitnesse</id>
 								<phase>test</phase>
 								<configuration>
-									<tasks>
+									<target>
 										<echo taskname="fitnesse" message="Starting FitNesse..." />
 										<java classname="fitnesseMain.FitNesseMain" classpathref="maven.runtime.classpath"
 											fork="true">
 											<arg line="-p 8000" />
 											<arg line="-d ." />
 										</java>
-									</tasks>
+									</target>
 								</configuration>
 								<goals>
 									<goal>run</goal>
@@ -72,16 +183,6 @@
 					<artifactId>maven-classpath-plugin</artifactId>
 					<version>1.9</version>
 					<scope>runtime</scope>
-				</dependency>
-				<dependency>
-					<groupId>nl.hsac</groupId>
-					<artifactId>hsac-fitnesse-fixtures</artifactId>
-					<version>2.1.1</version>
-				</dependency>
-				<dependency>
-					<groupId>nl.hsac</groupId>
-					<artifactId>hsac-fitnesse-plugin</artifactId>
-					<version>1.11.1</version>
 				</dependency>
 			</dependencies>
 		</profile>
